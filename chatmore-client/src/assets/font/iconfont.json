@@ -1,0 +1,93 @@
+{
+  "id": "4716670",
+  "name": "聊天室",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "705662",
+      "name": "电源",
+      "font_class": "dianyuan",
+      "unicode": "e60c",
+      "unicode_decimal": 58892
+    },
+    {
+      "icon_id": "705671",
+      "name": "关闭",
+      "font_class": "guanbi",
+      "unicode": "e615",
+      "unicode_decimal": 58901
+    },
+    {
+      "icon_id": "705684",
+      "name": "日历",
+      "font_class": "rili",
+      "unicode": "e620",
+      "unicode_decimal": 58912
+    },
+    {
+      "icon_id": "705692",
+      "name": "文档",
+      "font_class": "wendang",
+      "unicode": "e628",
+      "unicode_decimal": 58920
+    },
+    {
+      "icon_id": "705708",
+      "name": "手机",
+      "font_class": "shouji",
+      "unicode": "e632",
+      "unicode_decimal": 58930
+    },
+    {
+      "icon_id": "705709",
+      "name": "邮件",
+      "font_class": "youjian",
+      "unicode": "e633",
+      "unicode_decimal": 58931
+    },
+    {
+      "icon_id": "705658",
+      "name": "菜单",
+      "font_class": "caidan",
+      "unicode": "e608",
+      "unicode_decimal": 58888
+    },
+    {
+      "icon_id": "705659",
+      "name": "齿轮",
+      "font_class": "chilun",
+      "unicode": "e609",
+      "unicode_decimal": 58889
+    },
+    {
+      "icon_id": "705680",
+      "name": "联系人",
+      "font_class": "lianxiren",
+      "unicode": "e61c",
+      "unicode_decimal": 58908
+    },
+    {
+      "icon_id": "705686",
+      "name": "删除",
+      "font_class": "shanchu",
+      "unicode": "e622",
+      "unicode_decimal": 58914
+    },
+    {
+      "icon_id": "705694",
+      "name": "新消息",
+      "font_class": "xinxiaoxi",
+      "unicode": "e62a",
+      "unicode_decimal": 58922
+    },
+    {
+      "icon_id": "705707",
+      "name": "电话",
+      "font_class": "dianhua",
+      "unicode": "e631",
+      "unicode_decimal": 58929
+    }
+  ]
+}

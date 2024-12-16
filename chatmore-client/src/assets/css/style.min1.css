@@ -1,0 +1,126 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --bs-blue: #0d6efd;
+  --bs-indigo: #6610f2;
+  --bs-purple: #6f42c1;
+  --bs-pink: #d63384;
+  --bs-red: #dc3545;
+  --bs-orange: #fd7e14;
+  --bs-yellow: #ffc107;
+  --bs-green: rgb(33, 170, 147);
+  --bs-teal: #20c997;
+  --bs-cyan: #0dcaf0;
+  --bs-white: #fff;
+  --bs-gray: #6c757d;
+  --bs-gray-dark: #343a40;
+  --bs-primary: #0d6efd;
+  --bs-secondary: #6c757d;
+  --bs-success: #198754;
+  --bs-info: #0dcaf0;
+  --bs-warning: #ffc107;
+  --bs-danger: #dc3545;
+  --bs-light: #f8f9fa;
+  --bs-dark: #212529;
+  --bs-font-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --bs-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --bs-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0))
+}
+
+* {
+  padding: 0;
+  margin: 0;
+  padding-inline: 0;
+  box-sizing: border-box;
+}
+
+li {
+  list-style: none;
+}
+
+p {
+  font-size: 0.875rem;
+  /* 14px */
+}
+
+h1,
+.h1,
+h2,
+.h2,
+h3,
+.h3,
+h4,
+.h4,
+h5,
+.h5,
+h6,
+.h6 {
+  margin-top: 0;
+  margin-bottom: .5rem;
+  font-weight: 500;
+  line-height: 1.2
+}
+
+h1,
+.h1 {
+  font-size: calc(1.375rem+1.5vw)
+}
+
+h2,
+.h2 {
+  font-size: calc(1.325rem+.9vw)
+}
+
+h3,
+.h3 {
+  font-size: calc(1.3rem+.6vw)
+}
+
+h4,
+.h4 {
+  font-size: calc(1.275rem+.3vw)
+}
+
+h5,
+.h5 {
+  font-size: 1.25rem
+}
+
+h6,
+.h6 {
+  font-size: 1rem
+}
+
+textarea {
+  border: none;
+  resize: none;
+  outline: none;
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit
+}
+
+.el-avatar {
+  cursor: pointer;
+}
+
+[class="theme-cyan"] {
+  --font-family: 'IBM Plex Sans', sans-serif;
+  --primary-color: #21aa93;
+  --secondary-color: #00028c;
+  --primary-gradient: linear-gradient(45deg, #21aa93, #00028c)
+}
+
+a:-webkit-any-link {
+  text-decoration: none;
+
+}
+
+.iconfont {
+  font-size: 23px !important;
+  color: rgb(85, 85, 85);
+}
