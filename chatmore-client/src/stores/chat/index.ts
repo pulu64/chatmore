@@ -11,17 +11,16 @@ import { getGroupAdmins } from '@/api/modules/group';
 
 interface ChatState {
   socket: Socket | null;
-  personalDetail: Record<string, any>;
-  userGather: Record<string, any>;
-  friendGather: Record<string, any>;
-  groupGather: Record<string, any>;
-  messageGather: Record<string, any>;
-  friendRequests: Record<string, any>;
-  groupRequests: Record<string, any>;
-  groupInvites: Record<string, any>;
+  personalDetail: Record<string, Personal>;
+  userGather: UserGather;
+  friendGather: FriendGather;
+  groupGather: GroupGather;
+  messageGather: MessageGather;
+  friendRequests: Array<Friend_Request>;
+  groupRequests: Array<Group_Request>;
+  groupInvites: Array<Group_Invite>;
   unReadGather: Record<string, number>;
-  chatMap: Array<any>;
-  requestMap: Array<any>;
+  chatMap: Array<chatItem>;
 }
 
 export const useChatStore = defineStore('chat', {
@@ -33,13 +32,12 @@ export const useChatStore = defineStore('chat', {
     groupGather: {},
     messageGather: {},
     //申请信息
-    friendRequests: {},
-    groupRequests: {},
-    groupInvites: {},
+    friendRequests: [],
+    groupRequests: [],
+    groupInvites: [],
     unReadGather: {},
     //映射表
     chatMap: [],
-    requestMap: [],
   }),
   actions: {
     connect() {
@@ -79,7 +77,7 @@ export const useChatStore = defineStore('chat', {
         this.messageGather = chatMessages
         this.personalDetail = response.data.personalDetail
 
-        const processUsers = async (users, batchSize = 100) => {
+        const processUsers = async (users: Array<User>, batchSize = 100) => {
           for (let i = 0; i < users.length; i += batchSize) {
             const batch = users.slice(i, i + batchSize);
             batch.forEach(item => {
@@ -90,7 +88,7 @@ export const useChatStore = defineStore('chat', {
           }
         };
 
-        const processFriends = async (friends, batchSize = 100) => {
+        const processFriends = async (friends: Array<Friend>, batchSize = 100) => {
           for (let i = 0; i < friends.length; i += batchSize) {
             const batch = friends.slice(i, i + batchSize);
             batch.forEach(item => {
@@ -111,13 +109,14 @@ export const useChatStore = defineStore('chat', {
           }
         };
 
-        const processGroups = async (groups, batchSize = 100) => {
+        const processGroups = async (groups: Array<Group>, batchSize = 100) => {
           for (let i = 0; i < groups.length; i += batchSize) {
             const batch = groups.slice(i, i + batchSize);
             batch.forEach(async (item) => {
               if (!item) return;
               const admins = new Map();
-              item.adminMap.forEach((admin) => {
+              console.log(item.adminMap)
+              item.adminMap.forEach((admin: Group_Admin) => {
                 admins.set(admin.userId.toString(), admin.role);
               })
               item.adminMap = admins;
@@ -212,7 +211,7 @@ export const useChatStore = defineStore('chat', {
         if (!(_id in this.userGather)) {
           this.userGather[_id] = userDetail;
         }
-        let index = this.friendRequests.findIndex(item => item._id === requestData._id)
+        let index = this.friendRequests.findIndex((item: Friend_Request) => item._id === requestData._id)
         if (index !== -1) {
           this.friendRequests.splice(index, 1)
         }
@@ -243,7 +242,7 @@ export const useChatStore = defineStore('chat', {
       this.socket.on('createGroup', async (response) => {
         let { _id, createdAt } = response.data
         const admins = new Map();
-        response.data.adminMap.forEach((admin) => {
+        response.data.adminMap.forEach((admin: Group_Admin) => {
           admins.set(admin.userId.toString(), admin.role);
         })
         response.data.adminMap = admins;
@@ -325,7 +324,7 @@ export const useChatStore = defineStore('chat', {
         if (!(_id in this.userGather)) {
           this.userGather[_id] = userDetail;
         }
-        let index = this.groupRequests.findIndex(item => item._id === requestData._id)
+        let index = this.groupRequests.findIndex((item: Group_Request) => item._id === requestData._id)
         if (index !== -1) {
           this.groupRequests.splice(index, 1)
         }
@@ -337,7 +336,7 @@ export const useChatStore = defineStore('chat', {
 
       this.socket.on('receiveInviteGroup', async (response) => {
         const requestData = response.data
-        let index = this.groupInvites.findIndex(item => item._id === requestData._id)
+        let index = this.groupInvites.findIndex((item: Group_Invite) => item._id === requestData._id)
         if (index !== -1) {
           this.groupInvites.splice(index, 1)
         }
@@ -349,7 +348,7 @@ export const useChatStore = defineStore('chat', {
         const { groupDetail, messages } = response.data;
         const { _id } = groupDetail;
         const admins = new Map();
-        groupDetail.adminMap.forEach((admin) => {
+        groupDetail.adminMap.forEach((admin: Group_Admin) => {
           admins.set(admin.userId.toString(), admin.role);
         })
         groupDetail.adminMap = admins;
@@ -373,14 +372,14 @@ export const useChatStore = defineStore('chat', {
       this.socket.on('onAdminReceiveHandleAddGroupRequest', async (response) => {
         const { requestData } = response.data;
         const { _id, state } = requestData;
-        let index = this.groupRequests.findIndex(item => item._id === _id)
+        let index = this.groupRequests.findIndex((item: Group_Request) => item._id === _id)
         if (index !== -1) {
           this.groupRequests[index].state = state;
         }
       })
 
       this.socket.on('receiveInviteGroup', async (response) => {
-        let index = this.groupInvites.findIndex(item => item._id === response.data._id)
+        let index = this.groupInvites.findIndex((item: Group_Invite) => item._id === response.data._id)
         if (index !== -1) {
           this.groupInvites.splice(index, 1)
         }

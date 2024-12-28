@@ -57,28 +57,28 @@ watch(() => {
   if(typeof props.result!=='undefined'){
     return props.result
   }else{
-    id.value=personalDetail.value._id
-    name.value=personalDetail.value.username
-    email.value=personalDetail.value.email
-    phone.value=personalDetail.value.phone
-    gender.value=personalDetail.value.gender
-    info.value=personalDetail.value.signature
-    avatar.value=`http://127.0.0.1:3000/avatar/${personalDetail.value.profilePicture}`
+    id.value = personalDetail.value._id
+    name.value = personalDetail.value.username
+    email.value = personalDetail.value.email
+    phone.value = personalDetail.value.phone
+    gender.value = personalDetail.value.gender
+    info.value = personalDetail.value.signature
+    avatar.value = `http://127.0.0.1:3000/avatar/${personalDetail.value.profilePicture}`
   }
 }, (newResult) => {
-  if(props.type==='user'){
-    id.value=route.query.id.toString()
-    name.value=newResult.username
-    avatar.value=`http://127.0.0.1:3000/avatar/${newResult.profilePicture}`
-    gender.value=newResult.gender
-    phone.value=newResult.phone
-    info.value=newResult.signature
-  }else if(props.type==='group'){
-    id.value=route.query.id.toString()
-    name.value=newResult.groupName
-    gender.value=newResult.gender
-    info.value=newResult.groupDescription
-    avatar.value=newResult.groupPicture
+  if(props.type === 'user'){
+    id.value = route.query.id.toString()
+    name.value = newResult.username
+    avatar.value = `http://127.0.0.1:3000/avatar/${newResult.profilePicture}`
+    gender.value = newResult.gender
+    phone.value = newResult.phone
+    info.value = newResult.signature
+  }else if(props.type === 'group'){
+    id.value = route.query.id.toString()
+    name.value = newResult.groupName
+    gender.value = newResult.gender
+    info.value = newResult.groupDescription
+    avatar.value = newResult.groupPicture
   }
 },{deep:true})
 
