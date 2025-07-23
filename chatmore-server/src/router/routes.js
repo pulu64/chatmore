@@ -47,6 +47,7 @@ router.post('/signin', (req, res) => {
 //搜索功能
 router.get('/user/data', authenticateToken, async (req, res) => {
   try {
+
     const uid = req.user.id;
     const result = await dbCtrl.getAllData(uid);
     if (result.success) {

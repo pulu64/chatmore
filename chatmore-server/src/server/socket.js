@@ -67,6 +67,7 @@ async function listAllContacts(uid) {
 module.exports = function (io) {
   io.on('connection', (socket) => {
     try {
+
       //从socket.handshake.query中获取token和type得到userId
       const { token } = socket.handshake.query;
       const uid = getUserIdFromToken(token);

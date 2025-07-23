@@ -36,20 +36,18 @@ app.use('/', uploadRouter);
 
 //404页面
 app.use(function (req, res, next) {
-  let err = new Error('Not Found!')
-  err.status = 404
-  next(err)
-})
+  console.log('404 Not Found:', req.method, req.originalUrl);
+  res.status(404).json({ error: 'Not Found!' });
+});
 
 //出现错误处理
 app.use(function (err, req, res, next) {
-  res.status(err.status || 500)
-  res.send(err.message)
-  next(err)
-})
+  res.status(err.status || 500);
+  res.json({ error: err.message });
+});
 
 require('./server/socket')(io)
 
-server.listen(3000, () => {
-  console.log('Server is running on port 3000');
+server.listen(5172, () => {
+  console.log('Server is running on port 5172');
 });

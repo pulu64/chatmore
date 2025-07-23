@@ -1,10 +1,10 @@
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
 import { requestSuccess, requestFail, responseSuccess, responseFail } from './interceptors';
-const socketUrl = 'http://127.0.0.1:3000';
+export const SERVER_URL = 'http://127.0.0.1:5172';
 const myApi: AxiosInstance = axios.create({
   timeout: 60000,
-  baseURL: socketUrl,
+  baseURL: SERVER_URL,
   /*   headers: {
       'Cache-Control': 'no-cache',
       Pragma: 'no-cache',

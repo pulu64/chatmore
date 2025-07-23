@@ -8,6 +8,7 @@ import Cookies from 'js-cookie';
 import { ref } from 'vue';
 import { timeStamp } from 'console';
 import { getGroupAdmins } from '@/api/modules/group';
+import { SERVER_URL } from '@/api/index';
 
 interface ChatState {
   socket: Socket | null;
@@ -41,7 +42,7 @@ export const useChatStore = defineStore('chat', {
   }),
   actions: {
     connect() {
-      this.socket = io('http://127.0.0.1:3000', {
+      this.socket = io(SERVER_URL, {
         query: {
           token: Cookies.get('token')
         },

@@ -27,6 +27,9 @@ export default defineConfig({
       ],
     })
   ],
+  build: {
+    sourcemap: true, // 关键配置
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

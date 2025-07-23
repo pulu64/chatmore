@@ -39,11 +39,11 @@ async function userMatch(data, password, res) {
     const isMatch = bcrypt.verification(password, result.password);
     if (isMatch) {
       const token = jwt.generateToken(result._id, 'registration')
-      delete result.password;
+      // delete result.password;
       const back = {
         id: result._id,
         username: result.username,
-        profilePicture: result.profilePicture,
+        profilePicture: result.profilePicture || 'default.png',
         token: token,
       }
       res.status(200).json({
@@ -169,9 +169,15 @@ const getAllData = async (uid) => {
 
     //个人资料
     const personalDetail = await User.findOne({ _id: uid }, { password: 0 });
+    if (personalDetail && !personalDetail.profilePicture) {
+      personalDetail.profilePicture = 'default.png';
+    }
 
     //关联用户基础资料
     const userDetail = await User.find({ _id: { $in: userIds } }).select('username profilePicture state signature');
+    userDetail.forEach(user => {
+      if (!user.profilePicture) user.profilePicture = 'default.png';
+    });
 
     //群基础资料
     const groupDetail = await Group.find({ _id: { $in: groupIds } });
