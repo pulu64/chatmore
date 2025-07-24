@@ -155,6 +155,14 @@ export const useChatStore = defineStore('chat', {
         console.log(`代码执行时间: ${duration} ms`);
       });
 
+      // 新增：监听好友状态变更
+      this.socket.on('userStatusChange', (res) => {
+        const { userId, state } = res.data;
+        if (this.userGather[userId]) {
+          this.userGather[userId].state = state;
+        }
+      });
+
       //好友部分
 
       this.socket.on('receiveUpdateFriendNickname', async (response) => {
@@ -419,6 +427,13 @@ export const useChatStore = defineStore('chat', {
 
         this.groupGather[response.data._id].groupName = response.data.groupName
         this.groupGather[response.data._id].groupDescription = response.data.groupDescription
+      });
+
+      this.socket.on('userStatusChange', (data) => {
+        const { userId, state } = data;
+        if (this.userGather[userId]) {
+          this.userGather[userId].state = state;
+        }
       });
 
       this.socket.on('error', (error) => {

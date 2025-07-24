@@ -46,6 +46,10 @@ let nickname = ref('');
 let chatName = ref('');
 let color = ref('');
 
+const COLOR_ONLINE = 'var(--bs-green)';
+const COLOR_OFFLINE = '#ff4d4f';
+const COLOR_BUSY = 'var(--bs-yellow)';
+
 //初始化展示数据
 const data = computed(() => {
   if (type === 'user') {
@@ -74,7 +78,14 @@ watch(
       } else {
         chatName.value = name.value;
       }
-      type === 'user' && newData.user.state === 'active' ? (color.value = 'var(--bs-green)') : (color.value = 'var(--bs-red)');
+      if (type === 'user') {
+        if (newData.user.state === 'active') color.value = COLOR_ONLINE;
+        else if (newData.user.state === 'busy') color.value = COLOR_BUSY;
+        else if (newData.user.state === 'offline') color.value = COLOR_OFFLINE;
+        else color.value = COLOR_OFFLINE;
+      } else {
+        color.value = COLOR_ONLINE;
+      }
     } else {
       name.value = '';
       nickname.value = '';

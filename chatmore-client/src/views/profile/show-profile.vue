@@ -91,7 +91,9 @@ const chatStore = useChatStore();
 const { chatMap, groupGather, personalDetail } = storeToRefs(chatStore);
 
 const route = useRoute();
-const { id, type } = route.query;
+const id = computed(() => route.query.id);
+const type = computed(() => route.query.type);
+
 let props = defineProps(['result', 'type']);
 let isActive = ref(false); //测试中
 let confirmWindowTitle = '';
@@ -140,14 +142,14 @@ const handleCommand = (command, member) => {
   if (command === 'promoteToAdmin') {
     member.role = 'admin';
     chatStore.updateGroupMemberRole({
-      groupId: id,
+      groupId: id.value,
       userId: member.userId,
       role: 'admin',
     });
   } else if (command === 'demoteFromAdmin') {
     member.role = 'normal';
     chatStore.updateGroupMemberRole({
-      groupId: id,
+      groupId: id.value,
       userId: member.userId,
       role: 'normal',
     });
@@ -172,7 +174,7 @@ function forward() {
       members.value.splice(index, 1);
     }
     chatStore.removeMember({
-      groupId: id,
+      groupId: id.value,
       userId: memberItem.value.userId,
     });
   } else if (eventType.value === 'exitGroup') {
@@ -181,12 +183,12 @@ function forward() {
       members.value.splice(index, 1);
     }
     chatStore.exitGroup({
-      groupId: id,
+      groupId: id.value,
     });
   } else if (eventType.value === 'destroyGroup') {
     router.back();
     chatStore.destroyGroup({
-      groupId: id,
+      groupId: id.value,
     });
   }
   isActive.value = false;
@@ -215,13 +217,17 @@ watch(
 );
 
 // 在组件挂载后执行异步操作
-onMounted(async () => {
+async function loadProfile() {
   try {
-    personalId.value = personalDetail.value._id;
-    if (props.type === 'group') {
-      members.value = await getGroupMembers(id);
+    if (type.value === 'user' || type.value === 'request') {
+      // Assuming getUserProfile is defined elsewhere or will be added
+      // result.value = await getUserProfile(id.value.toString());
+    } else if (type.value === 'group') {
+      // Assuming getGroupProfile is defined elsewhere or will be added
+      // result.value = await getGroupProfile(id.value.toString());
+      members.value = await getGroupMembers(id.value);
       members.value.forEach((member) => {
-        if (member.userId === personalId.value) {
+        if (member.userId === personalDetail.value._id) {
           role.value = member.role;
         }
       });
@@ -229,7 +235,18 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error fetching user profile:', error);
   }
+}
+
+onMounted(() => {
+  loadProfile();
 });
+
+watch(
+  () => [id.value, type.value],
+  () => {
+    loadProfile();
+  }
+);
 </script>
 
 <style scoped>

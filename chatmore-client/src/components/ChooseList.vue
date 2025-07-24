@@ -8,7 +8,7 @@
           <el-checkbox v-for="item in data" :key="item" :label="item" :value="item" :disabled="isInclude(item)" :checked="isInclude(item)">
             <div class="media">
               <div class="avatar">
-                <el-badge is-dot class="item" :offset="[-5, 5]" :color="color" badge-style="width:11px;height:11px;">
+                <el-badge is-dot class="item" :offset="[-5, 5]" :color="badgeColor(item)" badge-style="width:11px;height:11px;">
                   <el-avatar :size="40" :src="`${SERVER_URL}/avatar/${userGather[item].profilePicture}`" alt="Avataaars" />
                 </el-badge>
               </div>
@@ -53,6 +53,20 @@ let includes = ref([]); //包含之前被选过的item，现在不可以重复�
 let color = ref('var(--bs-green)');
 
 let id = ref('');
+
+const COLOR_ONLINE = 'var(--bs-green)';
+const COLOR_OFFLINE = '#ff4d4f';
+const COLOR_BUSY = 'var(--bs-yellow)';
+
+function badgeColor(item) {
+  const user = userGather.value[item];
+  if (user) {
+    if (user.state === 'active') return COLOR_ONLINE;
+    if (user.state === 'busy') return COLOR_BUSY;
+    if (user.state === 'offline') return COLOR_OFFLINE;
+  }
+  return COLOR_OFFLINE;
+}
 
 watch(props, async (newProps) => {
   //由于一开始就会加载chooselist组件，要防止发送错误路由请求

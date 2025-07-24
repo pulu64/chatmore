@@ -1,3 +1,4 @@
+const { ObjectId } = require('mongodb');
 const { User, Friend, Friend_Request, Private_Message, Group, Group_Member, Group_Message, Group_Request, Group_Invite } = require('../models/dbModel');
 const chat = require('../server/controllers/chat')
 const profile = require('./controllers/profile')
@@ -7,6 +8,37 @@ const jwt = require('./token')
 const RCode = require('../common/constant/rcode')
 const userSocketMap = {}
 const _ = require('lodash');
+
+// 新增：用户状态防抖定时器
+const userStatusTimers = {}; // { [uid]: NodeJS.Timeout }
+const STATUS_DEBOUNCE_MS = 3000; // 3秒防抖
+
+async function debounceUpdateUserStatus(uid, state, io) {
+  console.log(uid, state)
+  if (userStatusTimers[uid]) {
+    clearTimeout(userStatusTimers[uid]);
+  }
+  userStatusTimers[uid] = setTimeout(async () => {
+    await profile.updateUserProfile(uid, { state });
+    delete userStatusTimers[uid];
+
+    try {
+      // 找到所有和 uid 有好友关系的用户
+      const friends1 = await Friend.find({ userId: uid }).select('friendId');
+      const friends2 = await Friend.find({ friendId: uid }).select('userId');
+      const notifyIds = new Set();
+      friends1.forEach(f => notifyIds.add(f.friendId.toString()));
+      friends2.forEach(f => notifyIds.add(f.userId.toString()));
+      console.log('需要广播的好友ID:', Array.from(notifyIds));
+      notifyIds.forEach(fid => {
+        console.log('广播给好友', fid, userSocketMap[fid]);
+        Response(fid, io, 'userStatusChange', 0, '', { userId: uid, state });
+      });
+    } catch (e) {
+      console.error('广播好友状态失败', e);
+    }
+  }, STATUS_DEBOUNCE_MS);
+}
 
 //token验证（待修改和合并
 function getUserIdFromToken(token) {
@@ -76,7 +108,8 @@ module.exports = function (io) {
       }
       userSocketMap[uid].push(socket.id);
       socket.uid = uid//让disconnect也能访问到
-      profile.updateUserProfile(uid, { state: 'active' })
+      // profile.updateUserProfile(uid, { state: 'active' }) // 原有写库
+      debounceUpdateUserStatus(uid, 'active', io); // 传 io
       console.log('用户已登录上线' + uid);
 
       //用户登录时，提交构成聊天室的所有信息
@@ -108,7 +141,7 @@ module.exports = function (io) {
       console.error('用户登录失败:', error);
     }
     socket.on('disconnect', () => {
-      profile.updateUserProfile(socket.uid, { state: 'offline' })
+      debounceUpdateUserStatus(socket.uid, 'offline', io); // 统一用防抖
       console.log(`用户 ${socket.uid} 断开连接`);
       if (userSocketMap[socket.uid]) {
         // 从数组中移除 socket.id
@@ -141,12 +174,12 @@ const getAllData = async (uid, io, socket, data) => {
     // 获取群组映射表
     const friendMap = await Friend.find({ userId: uid }).select('friendId nickname lastViewedAt createdAt');
 
-    // 获取私聊消息
-    friendMap.forEach(async (item) => {
+    // 获取私聊消息（并发优化）
+    await Promise.all(friendMap.map(async (item) => {
       const query = { $or: [{ senderId: uid, receiverId: item.friendId }, { senderId: item.friendId, receiverId: uid }] };
       const privateMessage = await Private_Message.find(query).sort({ timestamp: 1 });
       messageData[item.friendId] = privateMessage;
-    });
+    }));
 
     // 获取群聊消息
     const groupIds = groupMap.map(group => group.groupId.toString());
@@ -260,11 +293,11 @@ const sendGroupMessage = async (uid, io, socket, data) => {
     }
     const result = await chat.groupMessage(uid, gid, type, msg)
     if (result.success) {
-      //广播给所有群成员
+      //广播给所有群成员（并发优化）
       const getMembersResult = await group.getGroupMembers(gid)
-      getMembersResult.data.forEach(member => {
-        Response(member.userId, io, 'receiveGroupMessage', RCode.OK, '群消息已广播给所有群友', result.data);
-      });
+      await Promise.all(getMembersResult.data.map(member =>
+        Response(member.userId, io, 'receiveGroupMessage', RCode.OK, '群消息已广播给所有群友', result.data)
+      ));
     } else {
       failResponse(socket, 'sendGroupMessage', RCode.FAIL, result.error, null);
     }
@@ -451,12 +484,12 @@ const addGroup = async (uid, io, socket, data) => {
     if (result.success) {
       const userDetail = await User.findOne({ _id: uid }).select('username profilePicture state signature');
       const adminIds = getAdminsResult.data;
-      adminIds.forEach(item => {
+      await Promise.all(adminIds.map(item =>
         Response(item.userId, io, 'receiveAddGroup', RCode.OK, '收到其他用户的入群申请', {
           userDetail,
           requestData: result.data
-        });
-      })
+        })
+      ));
     } else {
       failResponse(socket, 'addGroup', RCode.FAIL, result.error, null);
     }
@@ -477,12 +510,12 @@ const handleAddGroupRequest = async (uid, io, socket, data) => {
     const result = await group.handleAddGroupRequest(uid, gid, sid, state)
     if (result.success) {
       //一开始需要广播给所有群成员，现在不需要了，因为都是点进群聊页面才会加载，减轻了负担
-      //现在只需要广播给其他管理员，实时更新入群申请的处理状态
+      //现在只需要广播给其他管理员，实时更新入群申请的处理状态（并发优化）
       const getAdminsResult = await group.getGroupAdmins(gid);
       const admins = getAdminsResult.data;
-      admins.forEach(item => {
-        Response(item.userId, io, 'onAdminReceiveHandleAddGroupRequest', RCode.OK, '用户的入群申请状态已更改', { requestData: result.data.existingRequest });
-      })
+      await Promise.all(admins.map(item =>
+        Response(item.userId, io, 'onAdminReceiveHandleAddGroupRequest', RCode.OK, '用户的入群申请状态已更改', { requestData: result.data.existingRequest })
+      ));
       if (state === 1) {
         const group = await Group.findOne({ _id: gid });
         const groupDetail = { adminMap: admins, ...result.data.memberDetail._doc, ...group._doc }
@@ -509,7 +542,7 @@ const inviteGroup = async (uid, io, socket, data) => {
   }
   try {
     let flag = true;//标记所有请求都发送成功与否
-    rids.forEach(async (item) => {
+    await Promise.all(rids.map(async (item) => {
       const result = await group.inviteGroup(uid, gid, item);
       if (result.success) {
         Response(item, io, 'receiveInviteGroup', RCode.OK, '邀请入群请求已接收', result.data);
@@ -520,7 +553,7 @@ const inviteGroup = async (uid, io, socket, data) => {
       if (flag) {
         Response(uid, io, 'inviteGroup', RCode.OK, '邀请入群请求已发送', result.data);
       }
-    })
+    }))
   } catch (error) {
     console.error('处理邀请入群时出错:', error);
     failResponse(socket, 'inviteGroup', RCode.FAIL, '服务器内部错误', null);
@@ -558,13 +591,13 @@ const updateGroupMemberRole = async (uid, io, socket, data) => {
     const result = await group.updateGroupMemberRole(uid, mid, gid, role)
     if (result.success) {
       const members = await Group_Member.find({ groupId: gid })
-      members.forEach(member => {
+      await Promise.all(members.map(member => {
         if (member.userId === uid) {
-          Response(uid, io, 'updateGroupMemberRole', RCode.OK, '已成功更改用户身份', result.data);
+          return Response(uid, io, 'updateGroupMemberRole', RCode.OK, '已成功更改用户身份', result.data);
         } else {
-          Response(member.userId, io, 'updateGroupMemberRole', RCode.OK, `用户${mid}的身份发生变化`, result.data);
+          return Response(member.userId, io, 'updateGroupMemberRole', RCode.OK, `用户${mid}的身份发生变化`, result.data);
         }
-      });
+      }));
     } else {
       failResponse(socket, 'updateGroupMemberRole', RCode.FAIL, result.error, null);
     }
@@ -641,18 +674,18 @@ const destroyGroup = async (uid, io, socket, data) => {
     const members = await Group_Member.find({ groupId: gid })
     const result = await group.destroyGroup(gid)
     if (result.success) {
-      members.forEach(member => {
+      await Promise.all(members.map(member => {
         if (member.userId.toString() === uid) {
-          Response(uid, io, 'destroyGroup', RCode.OK, '已成功解散群聊', result.data);
+          return Response(uid, io, 'destroyGroup', RCode.OK, '已成功解散群聊', result.data);
         } else {
-          Response(member.userId.toString(), io, 'destroyGroup', RCode.OK, '群聊被解散', result.data);
+          return Response(member.userId.toString(), io, 'destroyGroup', RCode.OK, '群聊被解散', result.data);
         }
-      });
+      }));
     } else {
       failResponse(socket, 'destroyGroup', RCode.FAIL, result.error, null);
     }
   } catch (error) {
-    console.error('解散群聊时出错', error);
+    console.error('解散群聊时出错:', error);
     failResponse(socket, 'destroyGroup', RCode.FAIL, '服务器内部错误', null);
   }
 }

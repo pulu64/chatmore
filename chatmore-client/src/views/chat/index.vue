@@ -31,7 +31,7 @@
           <div class="media">
             <div class="avatar">
               <RouterLink :to="{ name: 'profile', query: { id, type } }" active-class="active">
-                <el-badge is-dot class="item" :offset="[-6, 6]" badge-style="width:11px;height:11px;">
+                <el-badge is-dot class="item" :offset="[-6, 6]" :color="badgeColor" badge-style="width:11px;height:11px;">
                   <el-avatar :size="50" :src="`${SERVER_URL}/avatar/${avatar}`" />
                 </el-badge>
               </RouterLink>
@@ -134,11 +134,24 @@ const chatStore = useChatStore();
 const { messageGather, chatMap, userGather, groupGather, personalDetail } = storeToRefs(chatStore);
 const { sendPrivateMessage, sendGroupMessage } = chatStore;
 
-const friendMap = computed(() => {
-  const friends = chatMap.value.filter((item) => {
-    return item.type === 'user';
-  });
-  return friends.map((item) => item.id.toString());
+// 在线状态颜色常量
+const COLOR_ONLINE = 'var(--bs-green)';
+const COLOR_OFFLINE = '#ff4d4f';
+const COLOR_BUSY = 'var(--bs-yellow)';
+
+// 计算当前聊天对象的在线状态颜色
+const badgeColor = computed(() => {
+  if (type.value === 'user') {
+    const user = userGather.value[id.value];
+    if (user) {
+      if (user.state === 'active') return COLOR_ONLINE;
+      if (user.state === 'busy') return COLOR_BUSY;
+      if (user.state === 'offline') return COLOR_OFFLINE;
+    }
+    return COLOR_OFFLINE;
+  }
+  // 群聊不显示在线色，返回默认
+  return COLOR_ONLINE;
 });
 
 let isActive = ref(false);

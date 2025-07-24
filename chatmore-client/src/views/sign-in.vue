@@ -56,7 +56,7 @@ async function signin() {
     Cookies.set('token', data.matchDetail.token, { expires: 7 }); // 有效期为 7 天
     connect();
     getAllData();
-    //router.push('/chatmore');
+    router.push('/chatmore');
     ElMessage.success(data.message);
   } catch (error) {
     ElMessage.error(error.response.data.error);

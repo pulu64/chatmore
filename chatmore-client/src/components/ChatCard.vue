@@ -51,7 +51,10 @@ let message = ref('你们已经是好友啦，快来聊天吧~');
 let avatar = ref('');
 
 //在线状态
-let color = ref('var(--bs-green)');
+const COLOR_ONLINE = 'var(--bs-green)';
+const COLOR_OFFLINE = '#ff4d4f';
+const COLOR_BUSY = 'var(--bs-yellow)';
+let color = ref(COLOR_ONLINE);
 
 //信息+未读信息提醒
 let unread = ref(0);
@@ -125,12 +128,10 @@ watch(
       }
       //在线状态变更
       if (type === 'user') {
-        if (newData.user.state === 'active') color.value = 'var(--bs-green)';
-        else if (newData.user.state === 'busy') {
-          color.value = 'var(--bs-yellow)';
-        } else if (newData.user.state === 'offline') {
-          color.value = '#b1b1b1';
-        }
+        if (newData.user.state === 'active') color.value = COLOR_ONLINE;
+        else if (newData.user.state === 'busy') color.value = COLOR_BUSY;
+        else if (newData.user.state === 'offline') color.value = COLOR_OFFLINE;
+        else color.value = COLOR_OFFLINE;
       }
     } else {
       name.value = '';
