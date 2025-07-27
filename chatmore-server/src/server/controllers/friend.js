@@ -51,7 +51,7 @@ async function addFriend(sid, rid, msg) {
     //不用检查对方是否为好友，前端调用idFriend接口禁用加好友功能就行
     //先检查对方有无申请记录，如果有，则己方不用发送申请好友信息，直接与对方成为好友
     const existingRequest = await Friend_Request.findOneAndUpdate(
-      { senderId: rid, receiverId: sid, state: 0 }, { $set: { state: 1 } }, { upsert: false });
+      { senderId: rid, receiverId: sid, state: 'pending' }, { $set: { state: 'accepted' } }, { upsert: false });
     if (existingRequest) {
       newFriend(sid, rid)
     } else {
@@ -63,7 +63,7 @@ async function addFriend(sid, rid, msg) {
         requestMessage: msg,
       };
       const updatedRequest = await Friend_Request.findOneAndUpdate(
-        { senderId: sid, receiverId: rid, state: 0 },
+        { senderId: sid, receiverId: rid, state: 'pending' },
         { $set: requestData },
         { new: true, upsert: true }
       );
@@ -78,32 +78,27 @@ async function addFriend(sid, rid, msg) {
 //处理好友请求
 async function handleFriendRequest(sid, rid, state) {
   try {
-    // 检查请求参数
-    // 更新相应好友请求的处理状态
-    const existingRequest = await Friend_Request.findOneAndUpdate(
-      { senderId: sid, receiverId: rid, state: 0 },
-      { $set: { state: state } },
-      { new: true, upsert: false }
-    );
-    let senderData = {}
-    let receiverData = {}
+    const query = {
+      senderId: sid,
+      receiverId: rid,
+      state: 'pending',
+    };
+    const existingRequest = await Friend_Request.findOneAndUpdate(query, { $set: { state } }, { new: true });
+
     if (!existingRequest) {
-      return { success: false, error: '该好友请求不存在！' };
-    } else {
-      // 处理好友请求
-      if (state === 1) {
-        senderData = newFriend(sid, rid)
-        receiverData = newFriend(rid, sid)
-      }
-      let data = {
-        senderData,
-        receiverData
-      }
-      return { success: true, data }
+      return { success: false, error: '不存在该好友申请请求' };
     }
-  } catch (error) {
+
+    if (state === 'accepted') {
+      const senderData = await addFriend(sid, rid);
+      const receiverData = await addFriend(rid, sid);
+      return { success: true, data: { senderData, receiverData } }
+    }
+    return { success: true, data: { existingRequest } }
+  }
+  catch (error) {
     console.error(error); // 记录错误
-    return { success: false, error: '处理好友请求失败' };
+    return { success: false, error: '处理好友申请请求失败' };
   }
 }
 

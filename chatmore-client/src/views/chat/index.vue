@@ -176,9 +176,9 @@ async function handleSendMessage() {
     ElMessage.warning('内容不能为空！');
   }
   if (type.value === 'user') {
-    await sendPrivateMessage({ receiverId: id.value, type: 0, messageText: inputMessage.value });
+    await sendPrivateMessage({ receiverId: id.value, type: 'text', messageText: inputMessage.value });
   } else if (type.value === 'group') {
-    await sendGroupMessage({ groupId: id.value, type: 0, messageText: inputMessage.value });
+    await sendGroupMessage({ groupId: id.value, type: 'text', messageText: inputMessage.value });
   }
   inputMessage.value = '';
 }
@@ -271,9 +271,9 @@ async function handlechange(e) {
   console.log(result.msg);
   console.log(result.data.filename);
   if (type.value === 'user') {
-    await sendPrivateMessage({ receiverId: id.value, type: 1, messageText: result.data.filename });
+    await sendPrivateMessage({ receiverId: id.value, type: 'image', messageText: result.data.filename });
   } else if (type.value === 'group') {
-    await sendGroupMessage({ groupId: id.value, type: 1, messageText: result.data.filename });
+    await sendGroupMessage({ groupId: id.value, type: 'image', messageText: result.data.filename });
   }
 }
 

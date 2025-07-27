@@ -268,7 +268,7 @@ const updateUserProfile = async (uid, io, socket, data) => {
 const sendPrivateMessage = async (uid, io, socket, data) => {
   try {
     const { receiverId: rid, type, messageText: msg } = data
-    if (!rid || typeof rid !== 'string' || !msg || typeof msg !== 'string' || typeof type !== 'number') {
+    if (!rid || typeof rid !== 'string' || !msg || typeof msg !== 'string' || typeof type !== 'string') {
       failResponse(socket, 'sendPrivateMessage', RCode.FAIL, '无效的接收者ID或消息或消息类型', null);
       return
     }
@@ -287,7 +287,7 @@ const sendPrivateMessage = async (uid, io, socket, data) => {
 const sendGroupMessage = async (uid, io, socket, data) => {
   try {
     const { groupId: gid, type, messageText: msg } = data
-    if (!gid || typeof gid !== 'string' || !msg || typeof msg !== 'string' || typeof type !== 'number') {
+    if (!gid || typeof gid !== 'string' || !msg || typeof msg !== 'string' || typeof type !== 'string') {
       failResponse(socket, 'sendGroupMessage', RCode.FAIL, '无效的群组ID或消息或消息类型', null);
       return
     }
@@ -355,13 +355,13 @@ const addFriend = async (uid, io, socket, data) => {
 const handleFriendRequest = async (uid, io, socket, data) => {
   try {
     const { senderId: sid, state } = data
-    if (!sid || typeof sid !== 'string' || typeof state !== 'number') {
+    if (!sid || typeof sid !== 'string' || typeof state !== 'string') {
       failResponse(socket, 'handleFriendRequest', RCode.FAIL, '无效的发送者ID或状态', null);
       return
     }
     const result = await friend.handleFriendRequest(sid, uid, state)//sid,rid,state
     if (result.success) {
-      if (state === 1) {
+      if (state === 'accepted') {
         let senderDetail = await User.findOne({ _id: sid }).select('username profilePicture state signature');
         let receiverDetail = await User.findOne({ _id: uid }).select('username profilePicture state signature');
         senderDetail = {
@@ -381,9 +381,9 @@ const handleFriendRequest = async (uid, io, socket, data) => {
           userDetail: receiverDetail,
           messages: messages
         });
-      } else if (state === 2) {
+      } else if (state === 'rejected') {
         Response(uid, io, 'handleFriendRequest', RCode.OK, '加好友请求已拒绝', []);
-      } else if (state === 3) {
+      } else if (state === 'ignored') {
         Response(uid, io, 'handleFriendRequest', RCode.OK, '加好友请求已忽视', []);
       }
 
@@ -446,12 +446,12 @@ const handleInviteGroupRequest = async (uid, io, socket, data) => {
   try {
     const { groupId: gid, senderId: sid, state } = data
     // 检查请求参数
-    if (typeof gid !== 'string' || typeof sid !== 'string' || typeof state !== 'number') {
+    if (typeof gid !== 'string' || typeof sid !== 'string' || typeof state !== 'string') {
       failResponse(socket, 'handleInviteGroupRequest', RCode.FAIL, '无效的群组名称或发送者ID或状态', null);
     }
     const result = await group.handleInviteGroupRequest(uid, gid, sid, state)
     if (result.success) {
-      if (state === 1) {
+      if (state === 'accepted') {
         const getAdminsResult = await group.getGroupAdmins(gid);
         const admins = getAdminsResult.data;
         let groupDetail = await Group.findOne({ _id: gid });
@@ -504,7 +504,7 @@ const handleAddGroupRequest = async (uid, io, socket, data) => {
   try {
     const { groupId: gid, senderId: sid, state } = data
     // 检查请求参数
-    if (typeof gid !== 'string' || typeof state !== 'number') {
+    if (typeof gid !== 'string' || typeof state !== 'string') {
       failResponse(socket, 'handleAddGroupRequest', RCode.FAIL, '无效的群组名称或发送者ID或状态', null);
     }
     const result = await group.handleAddGroupRequest(uid, gid, sid, state)
@@ -516,7 +516,7 @@ const handleAddGroupRequest = async (uid, io, socket, data) => {
       await Promise.all(admins.map(item =>
         Response(item.userId, io, 'onAdminReceiveHandleAddGroupRequest', RCode.OK, '用户的入群申请状态已更改', { requestData: result.data.existingRequest })
       ));
-      if (state === 1) {
+      if (state === 'accepted') {
         const group = await Group.findOne({ _id: gid });
         const groupDetail = { adminMap: admins, ...result.data.memberDetail._doc, ...group._doc }
         console.log(groupDetail);

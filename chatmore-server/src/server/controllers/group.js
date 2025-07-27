@@ -334,7 +334,7 @@ async function addGroup(sid, gid, msg) {
   const query = {
     senderId: sid,
     groupId: gid,
-    state: 0,
+    state: 'pending',
   };
   try {
     const updatedRequest = await Group_Request.findOneAndUpdate(
@@ -364,7 +364,7 @@ async function inviteGroup(sid, gid, rid) {
       senderId: sid,
       receiverId: rid,
       groupId: gid,
-      state: 0
+      state: 'pending'
     };
     const updatedRequest = await Group_Invite.findOneAndUpdate(
       query,
@@ -384,7 +384,7 @@ async function handleAddGroupRequest(pid, gid, sid, state) {
     const query = {
       senderId: sid,
       groupId: gid,
-      state: 0,
+      state: 'pending',
     };
     const existingRequest = await Group_Request.findOneAndUpdate(query, { $set: { processedBy: pid, state } }, { new: true });
 
@@ -392,7 +392,7 @@ async function handleAddGroupRequest(pid, gid, sid, state) {
       return { success: false, error: '不存在该申请入群请求' };
     }
 
-    if (state === 1) {
+    if (state === 'accepted') {
       const memberDetail = await addGroupMember(sid, gid); // 确保添加成员的操作是异步的
       return { success: true, data: { existingRequest, memberDetail } }
     }
@@ -410,14 +410,14 @@ async function handleInviteGroupRequest(rid, gid, sid, state) {
     const query = {
       senderId: sid,
       groupId: gid,
-      state: 0,
+      state: 'pending',
     };
     const existingRequest = await Group_Invite.findOneAndUpdate(query, { $set: { state } }, { new: true });
     if (!existingRequest) {
       return { success: false, error: '不存在该邀请入群请求' };
     }
     else {
-      if (state === 1) {
+      if (state === 'accepted') {
         const user = await Group_Member.findOne({ groupId: gid, userId: sid })
         if (user.role !== 'normal') {
           const memberDetail = await addGroupMember(rid, gid); // 确保添加成员的操作是异步的

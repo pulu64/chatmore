@@ -12,10 +12,10 @@
       <p v-if="isRequest && requestType === 'groupRequest'">申请加入群：{{ requestGroupName }}</p>
       <p>{{ info }}</p>
     </div>
-    <p v-if="state === 1">已同意</p>
-    <p v-if="state === 2">已拒绝</p>
-    <p v-if="state === 3">已忽视</p>
-    <div class="menu" v-show="!(isRequest && state !== 0)">
+    <p v-if="state === 'accepted'">已同意</p>
+    <p v-if="state === 'rejected'">已拒绝</p>
+    <p v-if="state === 'ignored'">已忽视</p>
+    <div class="menu" v-show="!(isRequest && state !== 'pending')">
       <el-dropdown @command="handleCommand">
         <span class="el-dropdown-link">
           <el-icon><MoreFilled /></el-icon>
@@ -167,18 +167,18 @@ const handleCommand = (command: string | number | object) => {
       id: id.value,
     });
   } else if (command === 'agree' || command === 'disagree' || command === 'ignore') {
-    let changedState = 0;
+    let changedState = 'pending';
     switch (command) {
       case 'agree': {
-        changedState = 1;
+        changedState = 'accepted';
         break;
       }
       case 'disagree': {
-        changedState = 2;
+        changedState = 'rejected';
         break;
       }
       case 'ignore': {
-        changedState = 3;
+        changedState = 'ignored';
         break;
       }
       default:

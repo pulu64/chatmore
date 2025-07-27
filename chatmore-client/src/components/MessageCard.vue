@@ -12,20 +12,33 @@
           <span>{{ username }}</span>
           <i>{{ time }}</i>
         </span>
-        <div v-if="messageType === 0" class="message-content">{{ messageText }}</div>
-        <div v-if="messageType === 1" class="message-content chat-img">
-          <el-image
-            style="width: 200px; height: 200px"
-            :src="messageText"
-            :zoom-rate="1.2"
-            :max-scale="7"
-            :min-scale="0.2"
-            :preview-src-list="srcList"
-            :initial-index="0"
-            fit="cover"
-          />
+        <div v-if="messageType === 'text'" class="message-content">{{ messageText }}</div>
+        <div v-if="messageType === 'image'" class="message-content chat-img">
+          <div class="lazy-image-container" ref="imageContainer">
+            <div v-if="!isLoaded && !isError" class="image-placeholder">
+              <el-icon class="loading-icon"><Loading /></el-icon>
+              <span>加载中...</span>
+            </div>
+            <div v-if="isError" class="image-error">
+              <el-icon><Picture /></el-icon>
+              <span>图片加载失败</span>
+            </div>
+            <el-image
+              v-show="isLoaded && !isError"
+              style="width: 200px; height: 200px"
+              :src="imageSrc"
+              :zoom-rate="1.2"
+              :max-scale="7"
+              :min-scale="0.2"
+              :preview-src-list="srcList"
+              :initial-index="0"
+              fit="cover"
+              @load="onImageLoad"
+              @error="onImageError"
+            />
+          </div>
         </div>
-        <div v-if="messageType === 2" class="message-content file">
+        <div v-if="messageType === 'file'" class="message-content file">
           <img src="../assets/fileImg/pdf.png" alt="" />
           <div class="word">
             <h4>测试.pdf</h4>
@@ -44,7 +57,7 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { watch, computed, ref, toRefs } from 'vue';
+import { watch, computed, ref, toRefs, onMounted, onUnmounted } from 'vue';
 import { useChatStore } from '../stores/chat';
 import { storeToRefs } from 'pinia';
 import { format } from 'date-fns';
@@ -54,10 +67,67 @@ import { getGroupSendersDetail, getGroupAdmins } from '@/api/modules/group';
 import { SERVER_URL } from '@/api/index';
 import { getGroupMembers } from '../api/modules/group';
 import emitter from '@/utils/emitter';
+import { Loading, Picture } from '@element-plus/icons-vue';
+
 const chatStore = useChatStore();
 const { userGather, personalDetail, groupGather } = storeToRefs(chatStore);
 const props = defineProps(['item', 'userId', 'type']);
 const { item } = toRefs(props);
+
+// 懒加载相关状态
+const imageContainer = ref(null);
+const isInView = ref(false);
+const isLoaded = ref(false);
+const isError = ref(false);
+const imageSrc = ref('');
+const observer = ref(null);
+
+// 图片懒加载逻辑
+const initLazyLoading = () => {
+  if (!imageContainer.value) return;
+
+  observer.value = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          isInView.value = true;
+          imageSrc.value = messageText.value;
+          observer.value?.unobserve(entry.target);
+        }
+      });
+    },
+    {
+      rootMargin: '50px', // 提前50px开始加载
+      threshold: 0.1,
+    }
+  );
+
+  observer.value.observe(imageContainer.value);
+};
+
+const onImageLoad = () => {
+  isLoaded.value = true;
+  isError.value = false;
+};
+
+const onImageError = () => {
+  isError.value = true;
+  isLoaded.value = false;
+};
+
+// 组件挂载时初始化懒加载
+onMounted(() => {
+  if (messageType.value === 'image') {
+    initLazyLoading();
+  }
+});
+
+// 组件卸载时清理观察器
+onUnmounted(() => {
+  if (observer.value) {
+    observer.value.disconnect();
+  }
+});
 
 let id = ref(item.value.senderId);
 let username = ref('用户已注销');
@@ -104,7 +174,7 @@ let isSender = isSelf.value ? true : false;
 
 let srcList = [];
 
-if (messageType.value === 1) {
+if (messageType.value === 'image') {
   messageText.value = `${SERVER_URL}/image/${messageText.value}`;
   srcList[0] = messageText.value;
 }
@@ -176,6 +246,43 @@ if (messageType.value === 1) {
 }
 .chat-img .el-image {
   border-radius: 8px;
+}
+.lazy-image-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.image-placeholder,
+.image-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: #f5f5f5;
+  color: #999;
+  font-size: 14px;
+}
+.image-placeholder .loading-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  animation: rotate 1s linear infinite;
+}
+.image-error .el-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  color: #ff4d4f;
+}
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 .file {
   cursor: pointer;

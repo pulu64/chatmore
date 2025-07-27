@@ -16,7 +16,7 @@ async function getPrivateMessage(uid, fid) {
 async function getGroupMessage(gid) {
   try {
     const lists = await Group_Message.find({ groupId: gid })
-      .sort({ time: 1 })
+      .sort({ timestamp: 1 })
     return { success: true, data: lists }
   } catch (error) {
     console.error(error); // 记录错误
@@ -32,7 +32,7 @@ function sendPrivateMessage(uid, rid, type, msg) {
       type,
       messageText: msg,
       timestamp: new Date(),
-      state: 0//0未读1已读
+      state: 'unread' // 未读状态
     }
     const newMessage = new Private_Message(data)
     newMessage.save()
@@ -48,10 +48,10 @@ function groupMessage(uid, gid, type, msg) {
     const data = {
       groupId: gid,   //群组唯一标识（通常是 ObjectId）。
       senderId: uid,     //用户唯一标识（通常是 ObjectId）。
-      type: type,                                  //消息类型（0文字，1图片链接，）
+      type: type,                                  //消息类型（text, image, file）
       messageText: msg,                            //消息内容
       timestamp: new Date(),                                //消息发送时间
-      state: 0                                 //类型存疑。消息接收状态（0未读，1已读）
+      state: 'unread'                                 //消息接收状态（unread, read）
     }
     const newMessage = new Group_Message(data)
     newMessage.save()
