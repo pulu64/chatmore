@@ -132,12 +132,17 @@ const Private_Message = mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['text', 'image', 'file'],
+    enum: ['text', 'image', 'file', 'voice'],
     required: true
   },
   messageText: {
     type: String,
     required: true
+  },
+  duration: {
+    type: Number,
+    default: 0,
+    min: 0
   },
   timestamp: {
     type: Date,
@@ -299,12 +304,17 @@ const Group_Message = mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['text', 'image', 'file'],
+    enum: ['text', 'image', 'file', 'voice'],
     required: true
   },
   messageText: {
     type: String,
     required: true
+  },
+  duration: {
+    type: Number,
+    default: 0,
+    min: 0
   },
   timestamp: {
     type: Date,

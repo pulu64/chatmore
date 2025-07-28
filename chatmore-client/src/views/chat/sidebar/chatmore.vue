@@ -11,7 +11,7 @@
           </el-icon>
         </span>
         <template #dropdown>
-          <el-dropdown-menu >
+          <el-dropdown-menu>
             <el-dropdown-item command="choose">发起群聊</el-dropdown-item>
             <el-dropdown-item command="search">添加好友/群</el-dropdown-item>
             <!-- <el-dropdown-item>Action 3</el-dropdown-item>
@@ -23,24 +23,19 @@
     </div>
     <el-input v-model="search" placeholder="搜索">
       <template #prefix>
-        <el-icon ><Search /></el-icon>
+        <el-icon><Search /></el-icon>
       </template>
     </el-input>
     <p class="list-name">RECENT CHATS</p>
     <el-scrollbar max-height="100%">
       <ul class="alist">
-        <ChatCard @idFromCard="handleId" v-for="item in filteredChatMap" :key="item.id" :item="item"/>
+        <ChatCard @idFromCard="handleId" v-for="item in filteredChatMap" :key="item.id" :item="item" />
       </ul>
     </el-scrollbar>
   </div>
-  <div :class="{fade:isActive}">
-    <ChooseList 
-    type="buildGroup" 
-    :active="isChooseActive" 
-    :data="friendMap"
-    @build-group="getArr"
-    @cancel="handleCancel"></ChooseList>
-    <div class="window small" v-show="isBuildGroup&&isActive">
+  <div :class="{ fade: isActive }">
+    <ChooseList type="buildGroup" :active="isChooseActive" :data="friendMap" @build-group="getArr" @cancel="handleCancel"></ChooseList>
+    <div class="window small" v-show="isBuildGroup && isActive">
       <h6>✨建立新群聊✨</h6>
       <div>
         <p>输入群名称</p>
@@ -68,114 +63,115 @@
 
 <script lang="ts">
 import ChatCard from '@/components/ChatCard.vue';
-import ChooseList from "@/components/ChooseList.vue";
+import ChooseList from '@/components/ChooseList.vue';
 export default {
-  name:'chat-list',
-  components:{
-    ChatCard,ChooseList
-  }
-}
+  name: 'chat-list',
+  components: {
+    ChatCard,
+    ChooseList,
+  },
+};
 </script>
 
 <script setup lang="ts">
-import emitter from "@/utils/emitter";
-import { ElMessage } from 'element-plus'
-import { watch,computed, onUnmounted, ref } from 'vue'
-import { ArrowDown } from '@element-plus/icons-vue'
+import emitter from '@/utils/emitter';
+import { ElMessage } from 'element-plus';
+import { watch, computed, onUnmounted, ref } from 'vue';
+import { ArrowDown } from '@element-plus/icons-vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '@/stores/chat';
-const chatStore=useChatStore()
-let {chatMap,userGather,groupGather}=storeToRefs(chatStore)
-const {createGroup}=chatStore
-let filteredChatMap=ref(chatStore.chatMap)
+const chatStore = useChatStore();
+let { chatMap, userGather, groupGather } = storeToRefs(chatStore);
+const { createGroup } = chatStore;
+let filteredChatMap = ref(chatStore.chatMap);
 
 const friendMap = computed(() => {
-  const friends = chatMap.value.filter(item=>{
-    return item.type==='user'
-  })
-  return friends.map(item=>item.id.toString())
-})
+  const friends = chatMap.value.filter((item) => {
+    return item.type === 'user';
+  });
+  return friends.map((item) => item.id.toString());
+});
 
-let isActive=ref(false)
-let isChooseActive=ref(false)
-let isBuildGroup=ref(false)
-let inputGroupName=ref('')
-let inputGroupDescription=ref('')
-let data=ref({
-  groupName:'',
-  groupDescription:'',
-  members:[]
-})
+let isActive = ref(false);
+let isChooseActive = ref(false);
+let isBuildGroup = ref(false);
+let inputGroupName = ref('');
+let inputGroupDescription = ref('');
+let data = ref({
+  groupName: '',
+  groupDescription: '',
+  members: [],
+});
 
-let search=ref();
+let search = ref();
 const handleCommand = (command: string | number | object) => {
-  if(command==='choose'){
-    isActive.value=true;
-    isChooseActive.value=true;
-  }else if(command==='search'){
-    emitter.emit('search',2)
+  if (command === 'choose') {
+    isActive.value = true;
+    isChooseActive.value = true;
+  } else if (command === 'search') {
+    emitter.emit('search', 2);
   }
-}
+};
 
 //提交建群申请
-function getArr(arr){
-  data.value.members=arr
-  isBuildGroup.value=true;
-  isChooseActive.value=false;
+function getArr(arr) {
+  data.value.members = arr;
+  isBuildGroup.value = true;
+  isChooseActive.value = false;
 }
 
-function back(){
-  isBuildGroup.value=false;
-  isChooseActive.value=true;
+function back() {
+  isBuildGroup.value = false;
+  isChooseActive.value = true;
 }
 
-function handleCancel(){
-  isActive.value=false;
-  isChooseActive.value=false;
+function handleCancel() {
+  isActive.value = false;
+  isChooseActive.value = false;
 }
 
-async function buildGroup(){
-  if(inputGroupName.value&&inputGroupDescription.value){
-    data.value.groupName=inputGroupName.value,
-    data.value.groupDescription=inputGroupDescription.value,
-    chatStore.createGroup(data.value)
-    isActive.value=false;
-    isBuildGroup.value=false;
-    emitter.emit('notice','您已建立新群聊~')
-  }else if(!inputGroupName.value){
-    ElMessage.warning('群名称不能为空！')
-  }else if(!inputGroupDescription.value){
-    ElMessage.warning('群介绍不能为空！')
+async function buildGroup() {
+  if (inputGroupName.value && inputGroupDescription.value) {
+    (data.value.groupName = inputGroupName.value),
+      (data.value.groupDescription = inputGroupDescription.value),
+      chatStore.createGroup(data.value);
+    isActive.value = false;
+    isBuildGroup.value = false;
+    emitter.emit('notice', '您已建立新群聊~');
+  } else if (!inputGroupName.value) {
+    ElMessage.warning('群名称不能为空！');
+  } else if (!inputGroupDescription.value) {
+    ElMessage.warning('群介绍不能为空！');
   }
 }
 
-watch(search,(newTerm)=>{
-  const temp = chatMap.value.filter(item=>{
-    if(item.type==='user'){
+watch(search, (newTerm) => {
+  const temp = chatMap.value.filter((item) => {
+    if (item.type === 'user') {
       return userGather.value[item.id].username.toLowerCase().includes(newTerm.toLowerCase());
       /* userGather.value[item.id].email.includes(search.value); */
-    }else if(item.type==='group'){
+    } else if (item.type === 'group') {
       return groupGather.value[item.id].groupName.toLowerCase().includes(newTerm.toLowerCase());
     }
-  })
-  filteredChatMap.value=temp;
-})
+  });
+  filteredChatMap.value = temp;
+});
 
-watch(chatMap,(newChatMap)=>{
-  if(typeof search.value==='undefined'||search.value===''){
-    filteredChatMap.value=newChatMap;
+watch(chatMap, (newChatMap) => {
+  if (typeof search.value === 'undefined' || search.value === '') {
+    filteredChatMap.value = newChatMap;
   }
-})
+});
 
 //打开聊天页面
-const emit=defineEmits(['idFromList'])
-function handleId(id,chatName,type){
-  emit('idFromList',id,chatName,type)
+const emit = defineEmits(['idFromList']);
+function handleId(id, chatName, type) {
+  emit('idFromList', id, chatName, type);
 }
 </script>
 
 <style scoped>
-.sidebar{
+.sidebar {
   padding: 24px;
   padding-bottom: 0;
   width: 370px;
@@ -185,7 +181,18 @@ function handleId(id,chatName,type){
   flex-shrink: 0;
   flex-direction: column;
 }
-.container{
+
+/* 移动端侧边栏适配 */
+@media screen and (max-width: 767px) {
+  .sidebar {
+    width: 100%;
+    height: calc(100vh - 60px); /* 减去Nav的高度 */
+    padding: 16px;
+    padding-bottom: 0;
+  }
+}
+
+.container {
   height: 50px;
   display: flex;
   flex-direction: row;
@@ -193,84 +200,185 @@ function handleId(id,chatName,type){
   align-items: center;
   margin-bottom: 15px;
 }
-.container h1{
+
+/* 移动端容器适配 */
+@media screen and (max-width: 767px) {
+  .container {
+    height: 40px;
+    margin-bottom: 12px;
+  }
+}
+
+.container h1 {
   font-size: 28px;
   font-weight: 800;
-  color:var(--bs-green);
+  color: var(--bs-green);
 }
-.list-name{
+
+/* 移动端标题适配 */
+@media screen and (max-width: 767px) {
+  .container h1 {
+    font-size: 24px;
+  }
+}
+
+.list-name {
   padding: 10px 20px;
+}
+
+/* 移动端列表名称适配 */
+@media screen and (max-width: 767px) {
+  .list-name {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
 }
 
 :deep(.el-input__wrapper) {
   --el-input-focus-border-color: var(--bs-green);
 }
-.media{
-  margin-bottom: 8px;;
+
+.media {
+  margin-bottom: 8px;
   width: 320px;
   background-color: #fff;
   border-radius: 5px;
-  border:1px solid transparent;
-  box-shadow: 0 .15rem .15rem  rgba(0, 0, 0, 0.075);
+  border: 1px solid transparent;
+  box-shadow: 0 0.15rem 0.15rem rgba(0, 0, 0, 0.075);
 }
-.media:hover{
-  border:1px solid var(--bs-green);
-  cursor: pointer;
+
+/* 移动端媒体卡片适配 */
+@media screen and (max-width: 767px) {
+  .media {
+    width: 100%;
+    margin-bottom: 6px;
+  }
+}
+
+.media:hover {
+  border: 1px solid var(--bs-green);
   transition: 0.3s border;
 }
+
 .example-showcase .el-dropdown {
   cursor: pointer;
   display: flex;
   align-items: center;
-  
 }
-.el-dropdown-link{
-  outline:none;
+
+:deep(.el-collapse-item__content) {
+  padding: 0;
+  padding-top: 8px;
 }
-:deep(.el-dropdown-menu__item){
-  --el-dropdown-menuItem-hover-fill:rgba(33,170,147,0.1);
-  --el-dropdown-menuItem-hover-color:var(--bs-green);
+
+/* 移动端折叠面板内容适配 */
+@media screen and (max-width: 767px) {
+  :deep(.el-collapse-item__content) {
+    padding-top: 6px;
+  }
 }
-.el-scrollbar{
+
+:deep(.el-collapse-item__wrap) {
+  background-color: transparent;
+}
+
+.el-collapse-item h6 {
+  margin: 0;
+  padding-left: 20px;
+}
+
+/* 移动端折叠面板标题适配 */
+@media screen and (max-width: 767px) {
+  .el-collapse-item h6 {
+    padding-left: 16px;
+    font-size: 14px;
+  }
+}
+
+.el-scrollbar {
   height: 75%;
 }
 
-.fade{
+/* 移动端滚动条适配 */
+@media screen and (max-width: 767px) {
+  .el-scrollbar {
+    height: calc(100vh - 200px);
+  }
+}
+
+/* 弹窗样式 */
+.fade {
   position: fixed;
-  width: 370px;
+  top: 0;
+  left: 0;
+  width: 100%;
   height: 100%;
-  background-color: rgb(0, 0, 0,0.4);
-  z-index: 1;
-}
-.window{
-  margin: auto;
-  margin-top: 100px;
-  background-color: rgb(255,255,255);
-  border-radius: 15px;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
   display: flex;
-  flex-direction: column;
-}
-.small{
-  margin-top: 200px;
-  padding: 20px 40px;
-  width: 280px;
-  height: 320px;
   align-items: center;
+  justify-content: center;
 }
-.small h6{
-  font-size: 20px;
-  font-weight: 800;
-  color:var(--bs-green);
-  padding-top:16px;
-  margin-bottom: 5px;
+
+.window.small {
+  background-color: #fff;
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px;
+  max-width: 400px;
+  width: calc(100% - 40px);
+  text-align: center;
 }
-.small p{
-  padding: 10px 0;
+
+.window.small h6 {
+  margin-bottom: 20px;
+  font-size: 18px;
+  color: var(--bs-green);
 }
-.small .buttons{
-  margin-top: 23px;
+
+.window.small p {
+  margin-bottom: 8px;
+  color: #666;
+  font-size: 14px;
 }
-.small .el-input{
-  width: 200px;
+
+.window.small .el-input {
+  margin-bottom: 16px;
+}
+
+.window.small .buttons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* 移动端弹窗适配 */
+@media screen and (max-width: 767px) {
+  .window.small {
+    margin: 16px;
+    width: calc(100vw - 32px);
+    max-width: 320px;
+    padding: 16px;
+  }
+
+  .window.small h6 {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  .window.small p {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .window.small .el-input {
+    margin-bottom: 12px;
+  }
+
+  .window.small .buttons {
+    margin-top: 16px;
+    gap: 8px;
+  }
 }
 </style>

@@ -94,20 +94,67 @@ watch(
 .setting-header {
   margin-top: 16px;
 }
+
+/* 移动端设置头部适配 */
+@media screen and (max-width: 767px) {
+  .setting-header {
+    margin-top: 12px;
+  }
+
+  .setting-header h3 {
+    font-size: 20px;
+  }
+
+  .setting-header p {
+    font-size: 12px;
+  }
+}
+
 .user-page {
   height: 100vh;
   width: 100vw;
   display: flex;
   flex-direction: row;
 }
+
+/* 移动端用户页面适配 */
+@media screen and (max-width: 767px) {
+  .user-page {
+    flex-direction: column;
+  }
+}
+
 .el-header {
   height: 90px;
   padding-left: 40px;
   border-bottom: 1.5px solid rgb(243, 242, 239);
 }
+
+/* 移动端头部适配 */
+@media screen and (max-width: 767px) {
+  .el-header {
+    height: 60px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
 .setting {
   padding-left: 40px;
   flex-grow: 1;
   height: 100vh;
+}
+
+/* 移动端设置区域适配 */
+@media screen and (max-width: 767px) {
+  .setting {
+    padding-left: 16px;
+    padding-right: 16px;
+    height: calc(100vh - 60px);
+  }
+
+  .content {
+    padding: 16px 0;
+  }
 }
 </style>

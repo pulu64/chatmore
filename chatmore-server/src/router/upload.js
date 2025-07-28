@@ -13,7 +13,19 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + path.extname(file.originalname)); // 生成唯一文件名
   },
 });
+
+// 配置语音文件存储选项
+const voiceStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, '../public/voice'); // 语音文件的目标文件夹
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '.webm'); // 生成唯一文件名，固定为 webm 格式
+  },
+});
+
 const upload = multer({ storage })
+const voiceUpload = multer({ storage: voiceStorage })
 
 router.post('/files/upload', upload.single('file'), (req, res) => {
   if (!req.file) {
@@ -24,6 +36,26 @@ router.post('/files/upload', upload.single('file'), (req, res) => {
   res.send({
     success: true,
     msg: `File uploaded successfully:${normalizedPath}`,
+    data: {
+      filename: req.file.filename
+    }
+  });
+})
+
+// 语音文件上传路由
+router.post('/voice', voiceUpload.single('voice'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({
+      code: 400,
+      msg: 'No voice file uploaded.',
+      data: null
+    });
+  }
+  // 规范化路径，确保使用正斜杠
+  const normalizedPath = path.posix.join('voice', req.file.filename);
+  res.json({
+    code: 200,
+    msg: `Voice file uploaded successfully:${normalizedPath}`,
     data: {
       filename: req.file.filename
     }

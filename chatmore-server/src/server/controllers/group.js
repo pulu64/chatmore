@@ -67,15 +67,27 @@ async function createGroup(uid, name, desc, members) {
   }
 }
 
-async function destroyGroup(gid) {
+async function destroyGroup(uid, gid) {
   try {
-    await Group.deleteMany({ _id: gid })
-    await Group_Member.deleteMany({ groupId: gid })
-    await Group_Message.deleteMany({ groupId: gid })
-    return { success: true, data: { _id: gid } }
+    // 验证用户是否为群主
+    const group = await Group.findOne({ _id: gid });
+    if (!group) {
+      return { success: false, error: '群聊不存在' };
+    }
+
+    if (group.createdBy.toString() !== uid.toString()) {
+      return { success: false, error: '只有群主可以解散群聊' };
+    }
+
+    // 删除群聊相关数据
+    await Group.deleteMany({ _id: gid });
+    await Group_Member.deleteMany({ groupId: gid });
+    await Group_Message.deleteMany({ groupId: gid });
+
+    return { success: true, data: { _id: gid } };
   } catch (error) {
     console.error(error); // 记录错误
-    return { success: false, error: '解散群失败' }
+    return { success: false, error: '解散群失败' };
   }
 }
 

@@ -73,6 +73,14 @@ async function signin() {
   justify-content: center;
   align-items: center;
 }
+
+/* 移动端容器适配 */
+@media screen and (max-width: 767px) {
+  .container {
+    padding: 16px;
+  }
+}
+
 .card {
   padding: 40px;
   width: 380px;
@@ -82,45 +90,117 @@ async function signin() {
   flex-direction: column;
   align-items: center;
 }
+
+/* 移动端卡片适配 */
+@media screen and (max-width: 767px) {
+  .card {
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .card h1 {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .card p {
+    font-size: 14px;
+    text-align: center;
+  }
+}
+
 .input-group {
   margin: 40px 0;
 }
+
+/* 移动端输入组适配 */
+@media screen and (max-width: 767px) {
+  .input-group {
+    margin: 24px 0;
+    width: 100%;
+  }
+}
+
 .el-input {
   height: 55px;
   padding: 5px;
 }
+
+/* 移动端输入框适配 */
+@media screen and (max-width: 767px) {
+  .el-input {
+    height: 48px;
+    padding: 4px;
+    margin-bottom: 12px;
+  }
+}
+
 .el-button {
   margin: 0;
   margin-bottom: 24px;
 }
+
+/* 移动端按钮适配 */
+@media screen and (max-width: 767px) {
+  .el-button {
+    margin-bottom: 16px;
+    width: 100%;
+    height: 48px;
+  }
+}
+
 .extend {
   margin-top: 5px;
 }
+
 .extend .el-button {
   margin: 5px 0;
 }
+
 :deep(.el-input__wrapper) {
   --el-input-focus-border-color: var(--bs-green);
 }
+
 .el-link {
   float: right;
   color: var(--bs-green);
 }
+
 .alignment-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 5px;
 }
+
+/* 移动端对齐容器适配 */
+@media screen and (max-width: 767px) {
+  .alignment-container {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+}
+
 .link {
   font-size: 14px;
   font-family: 'Noto Sans', sans-serif;
   font-weight: 500;
   color: #21aa93;
 }
+
+/* 移动端链接适配 */
+@media screen and (max-width: 767px) {
+  .link {
+    font-size: 13px;
+  }
+}
+
 .link:hover {
   text-decoration: underline;
 }
+
 .link:active {
   color: #21aa93;
 }

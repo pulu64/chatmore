@@ -109,20 +109,27 @@ function generatePrivateMessages(friends, count) {
   for (let i = 0; i < count; i++) {
     const couple = friends[Math.floor(Math.random() * friends.length)];
     let randomNum = Math.floor(Math.random() * (10032 - 10001 + 1)) + 10001;
-    let type = faker.random.arrayElement(['text', 'image', 'file']);
+    let type = faker.random.arrayElement(['text', 'image', 'file', 'voice']);
     let messageText;
+    let duration = 0;
+
     if (type === 'text') {
       messageText = faker.lorem.sentence();
     } else if (type === 'image') {
       messageText = `${randomNum}.webp`;
     } else if (type === 'file') {
       messageText = `${randomNum}.pdf`;
+    } else if (type === 'voice') {
+      messageText = `${randomNum}.webm`;
+      duration = Math.floor(Math.random() * 60) + 1; // 1-60秒的随机时长
     }
+
     messages.push({
       senderId: couple.userId,
       receiverId: couple.friendId,
       type,
       messageText,
+      duration: type === 'voice' ? duration : 0,
       timestamp: faker.date.recent(),
       state: faker.random.arrayElement(['unread', 'read'])
     });
@@ -225,33 +232,59 @@ function generateGroupInvites(users, groups, count) {
 
 // 生成群组成员数据
 function generateGroupMembers(users, groups, count) {
+  console.log(`开始生成群组成员，参数：users=${users.length}, groups=${groups.length}, count=${count}`);
+
   const members = [];
+  const existingMembers = new Set(); // 用于跟踪已存在的成员组合
+
   for (let i = 0; i < count; i++) {
     const user = users[Math.floor(Math.random() * users.length)];
     const group = groups[Math.floor(Math.random() * groups.length)];
-    if (group.createdBy != user._id) {
-      // 生成群昵称并确保不超过20字符
-      let groupNickname = faker.name.firstName();
-      if (groupNickname.length > 20) {
-        groupNickname = groupNickname.substring(0, 20);
-      }
 
-      members.push({
-        groupId: group._id,
-        userId: user._id,
-        groupNickname: groupNickname,
-        unreadMessagesCount: Math.floor(Math.random() * 100),
-        role: faker.random.arrayElement(['normal', 'admin']),
-        isMuted: faker.random.boolean(),
-        joinedAt: faker.date.recent()
-      });
+    // 创建成员组合的唯一标识
+    const memberKey = `${group._id.toString()}-${user._id.toString()}`;
+
+    // 检查是否已存在该成员组合
+    if (existingMembers.has(memberKey)) {
+      console.log(`跳过重复的成员组合: ${memberKey}`);
+      continue; // 跳过重复的组合
     }
+
+    // 检查用户是否为群主
+    if (group.createdBy.toString() === user._id.toString()) {
+      console.log(`跳过群主: groupId=${group._id}, userId=${user._id}`);
+      continue; // 跳过群主，因为群主已经在 groupCreators 中
+    }
+
+    // 生成群昵称并确保不超过20字符
+    let groupNickname = faker.name.firstName();
+    if (groupNickname.length > 20) {
+      groupNickname = groupNickname.substring(0, 20);
+    }
+
+    const member = {
+      groupId: group._id,
+      userId: user._id,
+      groupNickname: groupNickname,
+      unreadMessagesCount: Math.floor(Math.random() * 100),
+      role: faker.random.arrayElement(['normal', 'admin']),
+      isMuted: faker.random.boolean(),
+      joinedAt: faker.date.recent()
+    };
+
+    console.log(`生成群组成员 ${i + 1}: groupId=${member.groupId}, userId=${member.userId}, role=${member.role}`);
+    members.push(member);
+    existingMembers.add(memberKey); // 添加到已存在集合中
   }
+
+  console.log(`总共生成了 ${members.length} 个群组成员`);
   return members;
 }
 
 // 生成群组消息数据
 function generateGroupMessages(users, groupMembers, groups, count) {
+  console.log(`开始生成群组消息，参数：users=${users.length}, groupMembers=${groupMembers.length}, groups=${groups.length}, count=${count}`);
+
   const messages = [];
   for (let i = 0; i < count; i++) {
     let user;
@@ -265,37 +298,52 @@ function generateGroupMessages(users, groupMembers, groups, count) {
       .filter(member => member.groupId.toString() === group._id.toString())
       .map(member => member.userId.toString());
 
+    console.log(`群组 ${group._id} 的成员数量: ${groupMemberIds.length}`);
+
     if (groupMemberIds.length > 0) {
       // 从群组成员中选择一个用户
       const randomMemberId = groupMemberIds[Math.floor(Math.random() * groupMemberIds.length)];
       user = users.find(u => u._id.toString() === randomMemberId);
+      console.log(`从群组成员中选择用户: ${randomMemberId}, 找到用户: ${user ? '是' : '否'}`);
     }
 
     // 如果没找到群组成员，从所有用户中随机选择
     if (!user) {
       user = users[Math.floor(Math.random() * users.length)];
+      console.log(`从所有用户中随机选择用户: ${user._id}`);
     }
 
     let randomNum = Math.floor(Math.random() * (10032 - 10001 + 1)) + 10001;
-    let type = faker.random.arrayElement(['text', 'image', 'file']);
+    let type = faker.random.arrayElement(['text', 'image', 'file', 'voice']);
     let messageText;
+    let duration = 0;
+
     if (type === 'text') {
       messageText = faker.lorem.sentence();
     } else if (type === 'image') {
       messageText = `${randomNum}.webp`;
     } else if (type === 'file') {
       messageText = `${randomNum}.pdf`;
+    } else if (type === 'voice') {
+      messageText = `${randomNum}.webm`;
+      duration = Math.floor(Math.random() * 60) + 1; // 1-60秒的随机时长
     }
 
-    messages.push({
+    const message = {
       groupId: group._id,
       senderId: user._id,
       type,
       messageText,
+      duration: type === 'voice' ? duration : 0,
       timestamp: faker.date.recent(),
       state: faker.random.arrayElement(['unread', 'read'])
-    });
+    };
+
+    console.log(`生成消息 ${i + 1}: groupId=${message.groupId}, senderId=${message.senderId}, type=${message.type}`);
+    messages.push(message);
   }
+
+  console.log(`总共生成了 ${messages.length} 条群组消息`);
   return messages;
 }
 
@@ -356,12 +404,25 @@ async function insertData() {
 
   // 生成群组成员
   console.log('生成群组成员数据...');
-  const groupMembers = await Group_Member.insertMany(generateGroupMembers(users, createdGroups, groupMemberCount));
-  console.log(`已生成 ${groupMembers.length} 个群组成员`);
+  const groupMembersData = generateGroupMembers(users, createdGroups, groupMemberCount);
+  console.log(`生成了 ${groupMembersData.length} 个群组成员数据`);
+
+  if (groupMembersData.length > 0) {
+    const groupMembers = await Group_Member.insertMany(groupMembersData);
+    console.log(`已插入 ${groupMembers.length} 个群组成员`);
+  } else {
+    console.log('警告：没有生成任何群组成员数据');
+    const groupMembers = [];
+  }
 
   // 生成群组消息
   console.log('生成群组消息数据...');
-  const groupMessages = generateGroupMessages(users, groupMembers, createdGroups, groupMessageCount);
+
+  // 获取所有群组成员（包括群主和普通成员）
+  const allGroupMembers = await Group_Member.find({});
+  console.log(`数据库中总共有 ${allGroupMembers.length} 个群组成员`);
+
+  const groupMessages = generateGroupMessages(users, allGroupMembers, createdGroups, groupMessageCount);
   console.log(`准备插入 ${groupMessages.length} 条群组消息`);
 
   if (groupMessages.length > 0) {

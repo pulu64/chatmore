@@ -95,10 +95,27 @@ export const useChatStore = defineStore('chat', {
             batch.forEach(item => {
               if (!item) return;
               this.friendGather[String(item.friendId)] = item;
-              let timestamp = item.createdAt
-              if (chatMessages[item.friendId].length !== 0) {
-                timestamp = chatMessages[String(item.friendId)].at(-1).timestamp
+
+              // 安全地处理时间戳
+              let timestamp = new Date(); // 默认使用当前时间
+              if (item.createdAt) {
+                const parsedDate = new Date(item.createdAt);
+                if (!isNaN(parsedDate.getTime())) {
+                  timestamp = parsedDate;
+                }
               }
+
+              // 如果有消息，使用最新消息的时间戳
+              if (chatMessages[item.friendId] && chatMessages[String(item.friendId)].length !== 0) {
+                const lastMessage = chatMessages[String(item.friendId)].at(-1);
+                if (lastMessage && lastMessage.timestamp) {
+                  const messageDate = new Date(lastMessage.timestamp);
+                  if (!isNaN(messageDate.getTime())) {
+                    timestamp = messageDate;
+                  }
+                }
+              }
+
               let chatItem = {
                 id: item.friendId,
                 type: "user",
@@ -122,11 +139,28 @@ export const useChatStore = defineStore('chat', {
               })
               item.adminMap = admins;
               this.groupGather[String(item._id)] = item;
-              let timestamp = item.createdAt;
-              let length = chatMessages[String(item._id)].length;
-              if (length !== 0) {
-                timestamp = chatMessages[String(item._id)].at(-1).timestamp
+
+              // 安全地处理时间戳
+              let timestamp = new Date(); // 默认使用当前时间
+              if (item.createdAt) {
+                const parsedDate = new Date(item.createdAt);
+                if (!isNaN(parsedDate.getTime())) {
+                  timestamp = parsedDate;
+                }
               }
+
+              // 如果有消息，使用最新消息的时间戳
+              const length = chatMessages[String(item._id)]?.length || 0;
+              if (length !== 0) {
+                const lastMessage = chatMessages[String(item._id)].at(-1);
+                if (lastMessage && lastMessage.timestamp) {
+                  const messageDate = new Date(lastMessage.timestamp);
+                  if (!isNaN(messageDate.getTime())) {
+                    timestamp = messageDate;
+                  }
+                }
+              }
+
               let chatItem = {
                 id: item._id,
                 type: "group",
@@ -175,6 +209,7 @@ export const useChatStore = defineStore('chat', {
         const { user, friend } = userDetail;
         const { _id } = user;
         const { createdAt } = friend;
+
         if (!(_id in this.userGather)) {
           this.userGather[_id] = user;
         }
@@ -184,10 +219,20 @@ export const useChatStore = defineStore('chat', {
         if (!(_id in this.messageGather)) {
           this.messageGather[_id] = messages;
         }
+
+        // 安全地处理时间戳
+        let timestamp = new Date(); // 默认使用当前时间
+        if (createdAt) {
+          const parsedDate = new Date(createdAt);
+          if (!isNaN(parsedDate.getTime())) {
+            timestamp = parsedDate;
+          }
+        }
+
         let data = {
           id: _id,
           type: 'user',
-          timestamp: createdAt
+          timestamp: timestamp
         }
         await this.chatMap.unshift(data);
       })
@@ -197,6 +242,7 @@ export const useChatStore = defineStore('chat', {
         const { user, friend } = userDetail;
         const { _id } = user;
         const { createdAt } = friend;
+
         if (!(_id in this.userGather)) {
           this.userGather[_id] = user;
         }
@@ -206,10 +252,20 @@ export const useChatStore = defineStore('chat', {
         if (!(_id in this.messageGather)) {
           this.messageGather[_id] = messages;
         }
+
+        // 安全地处理时间戳
+        let timestamp = new Date(); // 默认使用当前时间
+        if (createdAt) {
+          const parsedDate = new Date(createdAt);
+          if (!isNaN(parsedDate.getTime())) {
+            timestamp = parsedDate;
+          }
+        }
+
         let data = {
           id: _id,
           type: 'user',
-          timestamp: createdAt
+          timestamp: timestamp
         }
         await this.chatMap.unshift(data);
       })
@@ -416,6 +472,33 @@ export const useChatStore = defineStore('chat', {
       this.socket.on('receiveGroupMessage', async (response) => {
         let gid = response.data.groupId;
         this.messageGather[gid].push(response.data)
+      });
+
+      // 未读消息相关事件
+      this.socket.on('markMessagesAsRead', async (response) => {
+        const { chatId, chatType } = response.data;
+        // 更新本地消息状态
+        if (this.messageGather[chatId]) {
+          this.messageGather[chatId].forEach(msg => {
+            if (chatType === 'user') {
+              // 私聊：标记对方发送的消息为已读
+              if (msg.senderId === chatId && msg.state === 'unread') {
+                msg.state = 'read';
+              }
+            } else if (chatType === 'group') {
+              // 群聊：标记所有消息为已读
+              if (msg.state === 'unread') {
+                msg.state = 'read';
+              }
+            }
+          });
+        }
+      });
+
+      this.socket.on('getUnreadCount', async (response) => {
+        const { chatId, chatType, unreadCount } = response.data;
+        // 更新未读消息数量
+        this.unReadGather[chatId] = unreadCount;
       });
 
       this.socket.on('updateUserProfile', async (response) => {

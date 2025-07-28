@@ -119,6 +119,8 @@ module.exports = function (io) {
       //聊天相关
       socket.on('sendPrivateMessage', async (data) => sendPrivateMessage(uid, io, socket, data))
       socket.on('sendGroupMessage', async (data) => sendGroupMessage(uid, io, socket, data))
+      socket.on('markMessagesAsRead', async (data) => markMessagesAsRead(uid, io, socket, data))
+      socket.on('getUnreadCount', async (data) => getUnreadCount(uid, io, socket, data))
       //好友相关
       socket.on('updateFriendNickname', async (data) => updateFriendNickname(uid, io, socket, data))
       socket.on('addFriend', async (data) => addFriend(uid, io, socket, data))
@@ -267,12 +269,12 @@ const updateUserProfile = async (uid, io, socket, data) => {
 //消息发送
 const sendPrivateMessage = async (uid, io, socket, data) => {
   try {
-    const { receiverId: rid, type, messageText: msg } = data
+    const { receiverId: rid, type, messageText: msg, duration = 0 } = data
     if (!rid || typeof rid !== 'string' || !msg || typeof msg !== 'string' || typeof type !== 'string') {
       failResponse(socket, 'sendPrivateMessage', RCode.FAIL, '无效的接收者ID或消息或消息类型', null);
       return
     }
-    const result = await chat.sendPrivateMessage(uid, rid, type, msg)
+    const result = await chat.sendPrivateMessage(uid, rid, type, msg, duration)
     if (result.success) {
       Response(uid, io, 'sendPrivateMessage', RCode.OK, '私聊消息已发送', result.data);
       Response(rid, io, 'receivePrivateMessage', RCode.OK, '新的私聊消息已接收', result.data);
@@ -286,13 +288,16 @@ const sendPrivateMessage = async (uid, io, socket, data) => {
 }
 const sendGroupMessage = async (uid, io, socket, data) => {
   try {
-    const { groupId: gid, type, messageText: msg } = data
+    const { groupId: gid, type, messageText: msg, duration = 0 } = data
     if (!gid || typeof gid !== 'string' || !msg || typeof msg !== 'string' || typeof type !== 'string') {
       failResponse(socket, 'sendGroupMessage', RCode.FAIL, '无效的群组ID或消息或消息类型', null);
       return
     }
-    const result = await chat.groupMessage(uid, gid, type, msg)
+    const result = await chat.groupMessage(uid, gid, type, msg, duration)
     if (result.success) {
+      // 更新群成员的未读消息数量（排除发送者）
+      await chat.updateGroupMemberUnreadCount(gid, uid);
+
       //广播给所有群成员（并发优化）
       const getMembersResult = await group.getGroupMembers(gid)
       await Promise.all(getMembersResult.data.map(member =>
@@ -672,7 +677,7 @@ const destroyGroup = async (uid, io, socket, data) => {
       return
     }
     const members = await Group_Member.find({ groupId: gid })
-    const result = await group.destroyGroup(gid)
+    const result = await group.destroyGroup(uid, gid) // 修复：传入用户ID
     if (result.success) {
       await Promise.all(members.map(member => {
         if (member.userId.toString() === uid) {
@@ -689,3 +694,69 @@ const destroyGroup = async (uid, io, socket, data) => {
     failResponse(socket, 'destroyGroup', RCode.FAIL, '服务器内部错误', null);
   }
 }
+
+// 标记消息为已读
+const markMessagesAsRead = async (uid, io, socket, data) => {
+  try {
+    const { chatId, chatType } = data;
+
+    if (!chatId || typeof chatId !== 'string' || !chatType || typeof chatType !== 'string') {
+      failResponse(socket, 'markMessagesAsRead', RCode.FAIL, '无效的聊天ID或类型', null);
+      return;
+    }
+
+    let result;
+    if (chatType === 'user') {
+      result = await chat.markPrivateMessagesAsRead(uid, chatId);
+    } else if (chatType === 'group') {
+      result = await chat.markGroupMessagesAsRead(uid, chatId);
+    } else {
+      failResponse(socket, 'markMessagesAsRead', RCode.FAIL, '无效的聊天类型', null);
+      return;
+    }
+
+    if (result.success) {
+      Response(uid, io, 'markMessagesAsRead', RCode.OK, '消息已标记为已读', { chatId, chatType });
+    } else {
+      failResponse(socket, 'markMessagesAsRead', RCode.FAIL, result.error, null);
+    }
+  } catch (error) {
+    console.error('标记消息为已读时出错:', error);
+    failResponse(socket, 'markMessagesAsRead', RCode.FAIL, '服务器内部错误', null);
+  }
+};
+
+// 获取未读消息数量
+const getUnreadCount = async (uid, io, socket, data) => {
+  try {
+    const { chatId, chatType } = data;
+
+    if (!chatId || typeof chatId !== 'string' || !chatType || typeof chatType !== 'string') {
+      failResponse(socket, 'getUnreadCount', RCode.FAIL, '无效的聊天ID或类型', null);
+      return;
+    }
+
+    let result;
+    if (chatType === 'user') {
+      result = await chat.getPrivateUnreadCount(uid, chatId);
+    } else if (chatType === 'group') {
+      result = await chat.getGroupUnreadCount(uid, chatId);
+    } else {
+      failResponse(socket, 'getUnreadCount', RCode.FAIL, '无效的聊天类型', null);
+      return;
+    }
+
+    if (result.success) {
+      Response(uid, io, 'getUnreadCount', RCode.OK, '获取未读消息数量成功', {
+        chatId,
+        chatType,
+        unreadCount: result.data
+      });
+    } else {
+      failResponse(socket, 'getUnreadCount', RCode.FAIL, result.error, null);
+    }
+  } catch (error) {
+    console.error('获取未读消息数量时出错:', error);
+    failResponse(socket, 'getUnreadCount', RCode.FAIL, '服务器内部错误', null);
+  }
+};

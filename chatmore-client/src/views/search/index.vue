@@ -190,6 +190,20 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
 }
+
+/* 移动端添加好友/群弹窗适配 */
+@media screen and (max-width: 767px) {
+  .add-window {
+    margin-top: 100px;
+    margin-left: 20px;
+    margin-right: 20px;
+    width: calc(100vw - 40px);
+    max-width: 320px;
+    padding: 20px;
+    height: auto;
+    min-height: 200px;
+  }
+}
 .add-window p {
   margin-bottom: 5px;
   color: rgb(149, 170, 201);
@@ -234,6 +248,14 @@ onUnmounted(() => {
   width: 500px;
   margin: 5px 0;
 }
+
+/* 移动端搜索输入框适配 */
+@media screen and (max-width: 767px) {
+  .search .el-input {
+    width: 100%;
+    margin: 8px 0;
+  }
+}
 .show-page {
   display: flex;
 }
@@ -256,9 +278,31 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
 }
+
+/* 移动端搜索弹窗适配 */
+@media screen and (max-width: 767px) {
+  .search {
+    margin-top: 60px;
+    margin-left: 16px;
+    margin-right: 16px;
+    width: calc(100vw - 32px);
+    height: calc(100vh - 120px);
+    max-height: 600px;
+    padding: 16px;
+  }
+}
 .alist {
   height: 400px;
   width: 500px;
+}
+
+/* 移动端列表适配 */
+@media screen and (max-width: 767px) {
+  .alist {
+    height: calc(100vh - 300px);
+    width: 100%;
+    max-height: 400px;
+  }
 }
 /* .search h6{
   font-size: 20px;

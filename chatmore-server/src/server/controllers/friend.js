@@ -117,8 +117,18 @@ async function updateNickname(uid, fid, name) {
 //删除好友
 async function deleteFriend(uid, fid) {
   try {
+    // 删除好友关系
     const query = { $or: [{ userId: uid, friendId: fid }, { userId: fid, friendId: uid }] };
-    await Friend.deleteMany(query)
+    await Friend.deleteMany(query);
+
+    // 清理相关的私聊消息记录（可选，根据业务需求决定是否保留）
+    // await Private_Message.deleteMany({
+    //   $or: [
+    //     { senderId: uid, receiverId: fid },
+    //     { senderId: fid, receiverId: uid }
+    //   ]
+    // });
+
     const actor = {
       id: uid
     }

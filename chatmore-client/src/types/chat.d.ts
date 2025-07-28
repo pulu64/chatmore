@@ -48,8 +48,9 @@ interface Group_Member {
 interface Group_Message {
   _id: string;         // 群组唯一标识（通常是 ObjectId）
   userId: string;          // 用户唯一标识（通常是 ObjectId）
-  type: 'text' | 'image' | 'file';            // 消息类型
+  type: 'text' | 'image' | 'file' | 'voice';            // 消息类型
   messageText: string;     // 消息内容
+  duration?: number;       // 语音消息时长（秒）
   timestamp: Date;         // 消息发送时间
   state: 'unread' | 'read';           // 消息接收状态
 }
@@ -83,9 +84,10 @@ interface Message {
   messageText: string;     // 消息内容
   senderId: string;        // 发送者的用户唯一标识
   receiverId: string;      // 接收者的用户唯一标识
+  duration?: number;       // 语音消息时长（秒）
   state: 'unread' | 'read';           // 消息接收状态
   timestamp: Date;         // 消息发送时间
-  type: 'text' | 'image' | 'file';            // 消息类型
+  type: 'text' | 'image' | 'file' | 'voice';            // 消息类型
 }
 
 interface MessageGather {

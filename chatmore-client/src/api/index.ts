@@ -1,7 +1,8 @@
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
 import { requestSuccess, requestFail, responseSuccess, responseFail } from './interceptors';
-export const SERVER_URL = 'http://127.0.0.1:5172';
+//export const SERVER_URL = 'http://127.0.0.1:5172';
+export const SERVER_URL = 'http://192.168.0.200:5172';
 //export const SERVER_URL = 'http://8.130.13.35:5172';
 const myApi: AxiosInstance = axios.create({
   timeout: 60000,

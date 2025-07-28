@@ -46,5 +46,8 @@ declare module '@vue/runtime-core' {
     Nav: typeof import('./src/components/Nav.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    VoiceMessage: typeof import('./src/components/VoiceMessage.vue')['default']
+    VoiceRecorder: typeof import('./src/components/VoiceRecorder.vue')['default']
+    VoiceTest: typeof import('./src/components/VoiceTest.vue')['default']
   }
 }

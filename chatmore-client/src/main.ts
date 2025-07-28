@@ -4,6 +4,7 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 //引入样式文件
 import '@/assets/font/iconfont.css'
 import '@/assets/css/style.min1.css'
+import '@/assets/css/mobile.css'
 import 'element-plus/dist/index.css'
 import App from './App.vue'
 import router from './router'

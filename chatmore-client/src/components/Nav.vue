@@ -167,14 +167,44 @@ async function signout() {
   align-items: center;
   /* justify-content: space-between; */
 }
+
+/* 移动端导航栏适配 */
+@media screen and (max-width: 767px) {
+  .navbar {
+    width: 100%;
+    height: 60px;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    border-right: none;
+    border-bottom: 2px solid #fff;
+  }
+}
+
 .chat {
   margin-bottom: 50px;
 }
+
+/* 移动端聊天图标适配 */
+@media screen and (max-width: 767px) {
+  .chat {
+    margin-bottom: 0;
+  }
+}
+
 svg {
   width: 35px;
   backdrop-filter: var(--bs-green);
   border-bottom: 1px solid transparent;
 }
+
+/* 移动端SVG适配 */
+@media screen and (max-width: 767px) {
+  svg {
+    width: 28px;
+  }
+}
+
 .tool {
   display: flex;
   flex-direction: column;
@@ -182,17 +212,63 @@ svg {
   margin-bottom: 50px;
   flex-grow: 1;
 }
+
+/* 移动端工具栏适配 */
+@media screen and (max-width: 767px) {
+  .tool {
+    flex-direction: row;
+    margin-bottom: 0;
+    flex-grow: 0;
+    gap: 16px;
+  }
+}
+
 .tool a {
   padding: 8px 0;
   margin-bottom: 16px;
 }
+
+/* 移动端工具链接适配 */
+@media screen and (max-width: 767px) {
+  .tool a {
+    padding: 8px;
+    margin-bottom: 0;
+  }
+}
+
 i {
   transition: all 0.3s;
+  font-size: 20px;
 }
+
+/* 移动端图标适配 */
+@media screen and (max-width: 767px) {
+  i {
+    font-size: 18px;
+  }
+}
+
 .active i {
   color: var(--bs-green);
 }
+
 .el-avatar {
   outline: 1.5px solid rgb(191, 188, 188);
+}
+
+/* 移动端头像适配 */
+@media screen and (max-width: 767px) {
+  .el-avatar {
+    width: 32px !important;
+    height: 32px !important;
+  }
+}
+
+/* 移动端按钮适配 */
+@media screen and (max-width: 767px) {
+  .el-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
 }
 </style>

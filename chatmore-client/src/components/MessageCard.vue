@@ -45,6 +45,9 @@
             <p>154kb</p>
           </div>
         </div>
+        <div v-if="messageType === 'voice'" class="message-content voice">
+          <VoiceMessage :audio-url="voiceUrl" :duration="item.duration || 0" :timestamp="timestamp" :is-mine="isSender" />
+        </div>
       </li>
     </ul>
   </div>
@@ -68,6 +71,7 @@ import { SERVER_URL } from '@/api/index';
 import { getGroupMembers } from '../api/modules/group';
 import emitter from '@/utils/emitter';
 import { Loading, Picture } from '@element-plus/icons-vue';
+import VoiceMessage from './VoiceMessage.vue';
 
 const chatStore = useChatStore();
 const { userGather, personalDetail, groupGather } = storeToRefs(chatStore);
@@ -81,6 +85,14 @@ const isLoaded = ref(false);
 const isError = ref(false);
 const imageSrc = ref('');
 const observer = ref(null);
+
+// 语音消息 URL
+const voiceUrl = computed(() => {
+  if (messageType.value === 'voice') {
+    return `${SERVER_URL}/voice/${item.value.messageText}`;
+  }
+  return '';
+});
 
 // 图片懒加载逻辑
 const initLazyLoading = () => {
@@ -182,23 +194,33 @@ if (messageType.value === 'image') {
 <style scoped>
 .message {
   display: flex;
-  flex-direction: row;
-  justify-content: start;
+  align-items: flex-start;
+  margin-bottom: 20px;
 }
+
+/* 移动端消息适配 */
+@media screen and (max-width: 767px) {
+  .message {
+    margin-bottom: 16px;
+  }
+}
+
 .right {
-  justify-content: flex-end;
+  flex-direction: row-reverse;
 }
 .link {
-  height: 30px;
-}
-.el-avatar {
   margin-right: 10px;
+  flex-shrink: 0;
 }
 .right .link {
-  order: 1;
+  margin-left: 10px;
+  margin-right: 0;
+}
+.el-avatar {
+  /* 不设置margin，交给.link控制 */
 }
 .right .el-avatar {
-  margin-left: 10px;
+  /* 不设置margin，交给.link控制 */
 }
 .message-content {
   padding: 16px;
@@ -207,46 +229,104 @@ if (messageType.value === 'image') {
   border-radius: 15px;
   background-color: rgb(245, 245, 245);
 }
+
+/* 移动端消息体适配 */
+@media screen and (max-width: 767px) {
+  .message-content {
+    padding: 12px;
+    max-width: calc(100vw - 120px);
+    margin-bottom: 8px;
+  }
+}
+
 .message-content {
   border-top-left-radius: 0;
 }
+
 .right .message-content {
   border-top-left-radius: 15px;
   border-top-right-radius: 0;
 }
+
 .message-item {
   display: flex;
   flex-direction: column;
 }
+
 .message-body {
   padding: 0;
 }
+
 .message-item {
   align-items: flex-start;
 }
+
 .right .message-item {
   align-items: flex-end;
 }
+
 .date {
   color: rgb(149, 170, 201);
   margin-bottom: 8px;
 }
+
+/* 移动端日期适配 */
+@media screen and (max-width: 767px) {
+  .date {
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+}
+
 .date span {
   margin: 2px;
 }
+
+/* 移动端标签适配 */
+@media screen and (max-width: 767px) {
+  .date span {
+    margin: 1px;
+  }
+
+  :deep(.el-tag) {
+    font-size: 10px;
+    padding: 0 4px;
+    height: 18px;
+    line-height: 16px;
+  }
+}
+
 .date i {
   margin: 0 5px;
   display: none;
 }
+
 .right .date i {
   float: left;
 }
+
 .message-item:hover i {
   display: inline;
 }
+
+/* 移动端悬停效果优化 */
+@media screen and (max-width: 767px) {
+  .message-item:hover i {
+    display: inline;
+  }
+}
+
 .chat-img .el-image {
   border-radius: 8px;
 }
+
+/* 移动端图片适配 */
+@media screen and (max-width: 767px) {
+  .chat-img .el-image {
+    border-radius: 6px;
+  }
+}
+
 .lazy-image-container {
   position: relative;
   width: 200px;
@@ -254,6 +334,16 @@ if (messageType.value === 'image') {
   border-radius: 8px;
   overflow: hidden;
 }
+
+/* 移动端图片容器适配 */
+@media screen and (max-width: 767px) {
+  .lazy-image-container {
+    width: 150px;
+    height: 150px;
+    border-radius: 6px;
+  }
+}
+
 .image-placeholder,
 .image-error {
   display: flex;
@@ -266,16 +356,43 @@ if (messageType.value === 'image') {
   color: #999;
   font-size: 14px;
 }
+
+/* 移动端占位符适配 */
+@media screen and (max-width: 767px) {
+  .image-placeholder,
+  .image-error {
+    font-size: 12px;
+  }
+}
+
 .image-placeholder .loading-icon {
   font-size: 24px;
   margin-bottom: 8px;
   animation: rotate 1s linear infinite;
 }
+
+/* 移动端加载图标适配 */
+@media screen and (max-width: 767px) {
+  .image-placeholder .loading-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+}
+
 .image-error .el-icon {
   font-size: 24px;
   margin-bottom: 8px;
   color: #ff4d4f;
 }
+
+/* 移动端错误图标适配 */
+@media screen and (max-width: 767px) {
+  .image-error .el-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+}
+
 @keyframes rotate {
   from {
     transform: rotate(0deg);
@@ -284,20 +401,96 @@ if (messageType.value === 'image') {
     transform: rotate(360deg);
   }
 }
+
 .file {
   cursor: pointer;
   display: flex;
   align-items: center;
 }
+
+/* 移动端文件适配 */
+@media screen and (max-width: 767px) {
+  .file {
+    padding: 8px;
+  }
+}
+
 .file img {
   width: 50px;
   height: 50px;
   margin-right: 5px;
 }
+
+/* 移动端文件图标适配 */
+@media screen and (max-width: 767px) {
+  .file img {
+    width: 40px;
+    height: 40px;
+    margin-right: 8px;
+  }
+}
+
 .file h4 {
   display: inline-block;
 }
+
+/* 移动端文件标题适配 */
+@media screen and (max-width: 767px) {
+  .file h4 {
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+}
+
 .file p {
   color: rgb(149, 170, 201);
+}
+
+/* 移动端文件描述适配 */
+@media screen and (max-width: 767px) {
+  .file p {
+    font-size: 12px;
+  }
+}
+
+/* 移动端消息内容适配 */
+@media screen and (max-width: 767px) {
+  .message-content {
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+/* 移动端触摸优化 */
+@media screen and (max-width: 767px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .file:active {
+    transform: scale(0.98);
+  }
+
+  .link:active {
+    transform: scale(0.95);
+  }
+}
+
+/* 移动端语音消息适配 */
+@media screen and (max-width: 767px) {
+  .voice {
+    min-width: 120px;
+    max-width: 200px;
+  }
+}
+
+/* 移动端头像适配 */
+@media screen and (max-width: 767px) {
+  :deep(.el-avatar) {
+    width: 28px !important;
+    height: 28px !important;
+  }
 }
 </style>

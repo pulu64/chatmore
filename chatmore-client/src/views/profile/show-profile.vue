@@ -273,6 +273,20 @@ watch(
   align-items: center;
   box-shadow: 0px 0rem 7rem 20px rgba(0, 0, 0, 0.075);
 }
+
+/* 移动端确认弹窗适配 */
+@media screen and (max-width: 767px) {
+  .fade .confirm-window {
+    margin-left: 16px;
+    margin-right: 16px;
+    margin-top: 100px;
+    width: calc(100vw - 32px);
+    max-width: 320px;
+    padding: 20px;
+    height: auto;
+    min-height: 150px;
+  }
+}
 .el-descriptions {
   width: 850px;
   margin-bottom: 20px;

@@ -48,6 +48,6 @@ app.use(function (err, req, res, next) {
 
 require('./server/socket')(io)
 
-server.listen(5172, () => {
+server.listen(5172, '0.0.0.0', () => {
   console.log('Server is running on port 5172');
 });

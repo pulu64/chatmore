@@ -1,7 +1,8 @@
 <template>
   <div class="chat-page">
     <router-view @idFromList="handleIdfromCard"></router-view>
-    <div class="chat-window">
+    <!-- 移动端初始不显示聊天窗口，只有点击ChatCard后才显示 -->
+    <div class="chat-window" v-show="!isMobile || (isMobile && !isHide && id !== '')">
       <div :class="{ fade: isActive }">
         <ChooseList
           v-show="isChooseActive"
@@ -12,6 +13,9 @@
           @invite-group="getArr"
           @cancel="handleCancel"
         ></ChooseList>
+        <div v-show="isVoiceActive" class="voice-modal">
+          <VoiceRecorder :max-duration="60" @send="handleVoiceSend" @cancel="handleVoiceCancel" />
+        </div>
         <div v-show="isConfirm" class="exit-group">
           <h6 v-if="role !== 'owner'">是否退出群聊？😭</h6>
           <h6 v-if="role === 'owner'">是否解散群聊？😭</h6>
@@ -76,6 +80,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="upload"><input type="file" @change="handlechange" /></el-dropdown-item>
+                <el-dropdown-item command="voice">语音消息</el-dropdown-item>
                 <el-dropdown-item>上传文件</el-dropdown-item>
                 <!-- <el-dropdown-item>Action 3</el-dropdown-item>
                 <el-dropdown-item disabled>Action 4</el-dropdown-item>
@@ -114,7 +119,8 @@ import { sign } from 'crypto';
 import emitter from '@/utils/emitter';
 import ShowProfile from '../user/show-profile.vue';
 import ChooseList from '@/components/ChooseList.vue';
-import { uploadFile } from '../../api/modules/upload';
+import VoiceRecorder from '@/components/VoiceRecorder.vue';
+import { uploadFile, uploadVoice } from '../../api/modules/upload';
 import { SERVER_URL } from '@/api/index';
 export default {
   name: 'chat-window',
@@ -133,6 +139,16 @@ import { SERVER_URL } from '@/api/index';
 const chatStore = useChatStore();
 const { messageGather, chatMap, userGather, groupGather, personalDetail } = storeToRefs(chatStore);
 const { sendPrivateMessage, sendGroupMessage } = chatStore;
+
+// 计算好友列表，用于邀请入群功能
+const friendMap = computed(() => {
+  const friends = chatMap.value.filter((item) => {
+    return item.type === 'user';
+  });
+  const result = friends.map((item) => item.id.toString());
+  console.log('friendMap computed:', result); // 调试信息
+  return result;
+});
 
 // 在线状态颜色常量
 const COLOR_ONLINE = 'var(--bs-green)';
@@ -158,6 +174,7 @@ let isActive = ref(false);
 let isChooseActive = ref(false);
 let isConfirm = ref(false);
 let isHide = ref(false);
+let isVoiceActive = ref(false);
 let eventType: string;
 
 let id = ref('');
@@ -168,6 +185,11 @@ let signature = ref('');
 let avatar = ref('group.png');
 let type = ref('');
 let inputMessage = ref('');
+
+// 检测是否为移动端
+const isMobile = computed(() => {
+  return window.innerWidth <= 767;
+});
 
 /* 发送消息 */
 
@@ -181,6 +203,16 @@ async function handleSendMessage() {
     await sendGroupMessage({ groupId: id.value, type: 'text', messageText: inputMessage.value });
   }
   inputMessage.value = '';
+}
+
+// 标记消息为已读
+function markMessagesAsRead(chatId, chatType) {
+  if (chatStore.socket) {
+    chatStore.socket.emit('markMessagesAsRead', {
+      chatId,
+      chatType,
+    });
+  }
 }
 
 /* 打开相关chatRoom */
@@ -198,12 +230,18 @@ function handleIdfromCard(chatId, name, chatType) {
     avatar.value = groupGather.value[chatId].groupPicture;
     role.value = groupGather.value[chatId].role;
   }
+
+  // 标记消息为已读
+  markMessagesAsRead(chatId, chatType);
 }
 
 const handleCommand = (command: string | number | object) => {
   if (command === 'choose') {
     isActive.value = true;
     isChooseActive.value = true;
+  } else if (command === 'voice') {
+    isActive.value = true;
+    isVoiceActive.value = true;
   } else if (command === 'exit-group') {
     isActive.value = true;
     eventType = command;
@@ -262,6 +300,56 @@ function handleCancel() {
   isActive.value = false;
   isChooseActive.value = false;
   isConfirm.value = false;
+  isVoiceActive.value = false;
+}
+
+// 处理语音消息发送
+async function handleVoiceSend(audioBlob: Blob, duration: number) {
+  try {
+    console.log('开始发送语音消息:', { duration, blobSize: audioBlob.size });
+
+    // 上传语音文件
+    const result = await uploadVoice(audioBlob);
+    console.log('语音上传结果:', result);
+
+    if (result.code !== 200) {
+      throw new Error(result.msg || '语音上传失败');
+    }
+
+    const filename = result.data.filename;
+    console.log('语音文件名:', filename);
+
+    // 发送语音消息
+    if (type.value === 'user') {
+      console.log('发送私聊语音消息:', { receiverId: id.value, filename, duration });
+      await sendPrivateMessage({
+        receiverId: id.value,
+        type: 'voice',
+        messageText: filename,
+        duration: duration,
+      });
+    } else if (type.value === 'group') {
+      console.log('发送群聊语音消息:', { groupId: id.value, filename, duration });
+      await sendGroupMessage({
+        groupId: id.value,
+        type: 'voice',
+        messageText: filename,
+        duration: duration,
+      });
+    }
+
+    ElMessage.success('语音消息发送成功');
+    handleVoiceCancel();
+  } catch (error) {
+    console.error('发送语音消息失败:', error);
+    ElMessage.error('语音消息发送失败: ' + error.message);
+  }
+}
+
+// 处理语音录制取消
+function handleVoiceCancel() {
+  isVoiceActive.value = false;
+  isActive.value = false;
 }
 
 async function handlechange(e) {
@@ -355,9 +443,33 @@ onMounted(() => {
   justify-content: space-evenly;
   align-items: center;
 }
+
+.fade .voice-modal {
+  margin-left: 350px;
+  margin-top: 200px;
+  width: 400px;
+  background-color: rgb(255, 255, 255);
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 移动端语音模态框适配 */
+@media screen and (max-width: 767px) {
+  .fade .voice-modal {
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-top: 100px;
+    width: calc(100vw - 40px);
+    max-width: 400px;
+  }
+}
+
 .exit-group h6 {
   margin-bottom: 15px;
 }
+
 .chat-page {
   height: 100vh;
   width: 100vw;
@@ -365,10 +477,28 @@ onMounted(() => {
   flex-direction: row;
   flex-basis: auto;
 }
+
+/* 移动端聊天页面布局 */
+@media screen and (max-width: 767px) {
+  .chat-page {
+    flex-direction: column;
+    height: calc(100vh - 60px); /* 减去Nav的高度 */
+  }
+}
+
 .chat-window {
   width: 900px;
   flex-grow: 1;
 }
+
+/* 移动端聊天窗口适配 */
+@media screen and (max-width: 767px) {
+  .chat-window {
+    width: 100%;
+    height: 100%;
+  }
+}
+
 .prompt {
   height: 100vh;
   font-family: 'IBM Plex Sans', sans-serif;
@@ -377,71 +507,266 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
 }
+
+/* 移动端提示区域适配 */
+@media screen and (max-width: 767px) {
+  .prompt {
+    height: calc(100vh - 60px);
+    padding: 20px;
+    text-align: center;
+  }
+
+  .prompt h5 {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  .prompt p {
+    font-size: 14px;
+  }
+}
+
 .prompt .el-avatar {
   margin-bottom: 48px;
 }
+
+/* 移动端头像适配 */
+@media screen and (max-width: 767px) {
+  .prompt .el-avatar {
+    margin-bottom: 24px;
+  }
+}
+
 .prompt h5 {
   margin-bottom: 15px;
 }
+
 .el-container {
   padding: 0 40px;
   height: 100vh;
 }
+
+/* 移动端容器适配 */
+@media screen and (max-width: 767px) {
+  .el-container {
+    padding: 0 16px;
+    height: calc(100vh - 60px);
+  }
+}
+
 .el-header {
   height: 90px;
   padding-left: 40px;
   border-bottom: 1.5px solid rgb(243, 242, 239);
 }
+
+/* 移动端头部适配 */
+@media screen and (max-width: 767px) {
+  .el-header {
+    height: 60px;
+    padding: 10px 16px;
+  }
+}
+
 .el-footer {
   height: 90px;
+  padding: 0 40px;
   border-top: 1.5px solid rgb(243, 242, 239);
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
+/* 移动端底部适配 */
+@media screen and (max-width: 767px) {
+  .el-footer {
+    height: 60px;
+    padding: 10px 16px;
+    gap: 8px;
+  }
+}
+
 .media {
   padding: 16px 0;
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-content: center;
 }
+
+/* 移动端媒体区域适配 */
+@media screen and (max-width: 767px) {
+  .media {
+    padding: 12px 0;
+    gap: 12px;
+  }
+}
+
 .media .avatar {
   margin-right: 20px;
 }
+
+/* 移动端头像适配 */
+@media screen and (max-width: 767px) {
+  .media .avatar {
+    margin-right: 12px;
+  }
+
+  :deep(.el-avatar) {
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
+
 .media-body {
   width: 60%;
   height: 50px;
 }
-.media-body p {
+
+/* 移动端媒体体适配 */
+@media screen and (max-width: 767px) {
+  .media-body {
+    width: 50%;
+    height: 40px;
+  }
+
+  .media-body h6 {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .media-body p {
+    font-size: 12px;
+  }
+}
+
+.media-body h6 {
+  margin-bottom: 0;
+  margin-right: 10px;
+  font-weight: 400;
+  font-size: 17px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.media-body p {
+  overflow: hidden;
+  margin-right: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(149, 170, 201);
+}
+
 .chat-room {
   padding: 0 40px;
   height: calc(100vh - 180px);
 }
+
+/* 移动端聊天室适配 */
+@media screen and (max-width: 767px) {
+  .chat-room {
+    padding: 0 16px;
+    height: calc(100vh - 180px); /* 减去头部和底部的高度 */
+  }
+}
+
 .chat-list {
   padding: 20px 0;
 }
+
+/* 移动端聊天列表适配 */
+@media screen and (max-width: 767px) {
+  .chat-list {
+    padding: 12px 0;
+  }
+}
+
 .el-footer textarea {
   width: 740px;
+  height: 55px;
+  padding: 5px;
 }
+
+/* 移动端输入框适配 */
+@media screen and (max-width: 767px) {
+  .el-footer textarea {
+    width: calc(100% - 120px);
+    height: 48px;
+    padding: 4px;
+    resize: none;
+    font-size: 16px;
+  }
+}
+
 .media .el-dropdown {
   width: 150px;
   margin-left: 120px;
 }
+
+/* 移动端下拉菜单适配 */
+@media screen and (max-width: 767px) {
+  .media .el-dropdown {
+    width: auto;
+    margin-left: auto;
+  }
+}
+
 .el-footer .el-dropdown {
   height: 32px;
   line-height: 32px;
   width: 45px;
 }
+
+/* 移动端底部下拉菜单适配 */
+@media screen and (max-width: 767px) {
+  .el-footer .el-dropdown {
+    height: 40px;
+    line-height: 40px;
+    width: 40px;
+  }
+}
+
 .el-dropdown-link {
   outline: none;
 }
+
 :deep(.el-dropdown-menu__item) {
   --el-dropdown-menuItem-hover-fill: rgba(33, 170, 147, 0.1);
   --el-dropdown-menuItem-hover-color: var(--bs-green);
+}
+
+/* 移动端下拉菜单项适配 */
+@media screen and (max-width: 767px) {
+  :deep(.el-dropdown-menu__item) {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
+
+/* 移动端按钮适配 */
+@media screen and (max-width: 767px) {
+  .el-button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
+
+/* 移动端滚动条优化 */
+@media screen and (max-width: 767px) {
+  .el-scrollbar {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* 移动端触摸优化 */
+@media screen and (max-width: 767px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .el-button:active,
+  .el-dropdown-link:active {
+    transform: scale(0.98);
+  }
 }
 </style>

@@ -28,6 +28,7 @@ export default {
 
 <script setup lang="ts">
 import { watch, ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { useChatStore } from '../stores/chat';
 import { storeToRefs } from 'pinia';
 import { differenceInCalendarDays, format } from 'date-fns';
@@ -37,11 +38,17 @@ import emitter from '@/utils/emitter';
 import { getGroupMembers } from '../api/modules/group';
 import { SERVER_URL } from '@/api/index';
 
+const router = useRouter();
 const chatStore = useChatStore();
 const { groupGather, messageGather, userGather, friendGather, chatMap } = storeToRefs(chatStore);
 const { personalDetail } = chatStore;
 const props = defineProps(['item']);
 let { id, type, timestamp } = props.item;
+
+// 检测是否为移动端
+const isMobile = computed(() => {
+  return window.innerWidth <= 767;
+});
 
 //信息
 let name = ref('');
@@ -58,7 +65,59 @@ let color = ref(COLOR_ONLINE);
 
 //信息+未读信息提醒
 let unread = ref(0);
-let isActive = ref(false); //测试中
+let isActive = ref(false);
+
+// 计算未读消息数量
+const calculateUnreadCount = () => {
+  if (!id || !messageGather.value[id]) return 0;
+
+  const messages = messageGather.value[id];
+  const currentUserId = personalDetail._id;
+
+  if (type === 'user') {
+    // 私聊：计算对方发送的未读消息
+    return messages.filter((msg) => msg.senderId === id && msg.receiverId === currentUserId && msg.state === 'unread').length;
+  } else if (type === 'group') {
+    // 群聊：从群成员信息中获取未读消息数量
+    const groupMember = groupGather.value[id]?.adminMap?.get(currentUserId);
+    if (groupMember && groupMember.unreadMessagesCount !== undefined) {
+      return groupMember.unreadMessagesCount;
+    }
+
+    // 如果没有群成员信息，则计算 lastViewedAt 之后的消息数量
+    const member = Object.values(groupGather.value).find((group) => group._id === id && group.adminMap?.has(currentUserId));
+
+    if (member) {
+      const lastViewedAt = member.lastViewedAt || new Date(0);
+      return messages.filter((msg) => new Date(msg.timestamp) > new Date(lastViewedAt)).length;
+    }
+  }
+
+  return 0;
+};
+
+// 监听消息变化，更新未读数量
+watch(
+  () => messageGather.value[id],
+  () => {
+    unread.value = calculateUnreadCount();
+    isActive.value = unread.value > 0;
+  },
+  { deep: true, immediate: true }
+);
+
+// 监听群成员信息变化（群聊未读消息数量）
+watch(
+  () => groupGather.value[id],
+  () => {
+    if (type === 'group') {
+      unread.value = calculateUnreadCount();
+      isActive.value = unread.value > 0;
+    }
+  },
+  { deep: true, immediate: true }
+);
+
 if (chatStore.messageGather[id].length !== 0) {
   message.value = messageGather.value[id].at(-1).messageText;
 }
@@ -66,16 +125,36 @@ if (chatStore.messageGather[id].length !== 0) {
 //最新消息时间
 let time = ref('');
 const now = new Date();
-if (!(timestamp instanceof Date)) {
-  timestamp = new Date(timestamp);
-}
-const diffInDays = differenceInCalendarDays(now, timestamp);
+
+// 安全地处理时间戳
+const processTimestamp = (timestampValue) => {
+  if (!timestampValue) {
+    return new Date(); // 如果没有时间戳，使用当前时间
+  }
+
+  let date;
+  if (timestampValue instanceof Date) {
+    date = timestampValue;
+  } else {
+    // 尝试解析时间戳
+    date = new Date(timestampValue);
+    // 检查是否为有效日期
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid timestamp:', timestampValue, 'using current time');
+      return new Date();
+    }
+  }
+  return date;
+};
+
+const validTimestamp = processTimestamp(timestamp);
+const diffInDays = differenceInCalendarDays(now, validTimestamp);
 if (diffInDays === 0) {
-  time.value = format(timestamp, 'p', { locale: zhCN });
+  time.value = format(validTimestamp, 'p', { locale: zhCN });
 } else if (diffInDays === 1) {
   time.value = '昨天';
 } else {
-  time.value = format(timestamp, 'yyyy/MM/dd', { locale: zhCN });
+  time.value = format(validTimestamp, 'yyyy/MM/dd', { locale: zhCN });
 }
 
 //初始化展示数据
@@ -109,7 +188,16 @@ async function openChatRoom() {
       }
     });
   }
-  emit('idFromCard', id, chatName, type);
+
+  // 移动端跳转到独立聊天窗口
+  if (isMobile.value) {
+    console.log('移动端跳转到聊天窗口:', `/chat-window/${id}`);
+    router.push(`/chat-window/${id}`);
+  } else {
+    // 桌面端使用原有逻辑
+    console.log('桌面端发送事件:', id, chatName, type);
+    emit('idFromCard', id, chatName, type);
+  }
 }
 
 // 监听 data 的变化
@@ -159,7 +247,10 @@ watch(
       item.timestamp = new Date();
       chatMap.value.unshift(item);
       message.value = newMessage.message;
-      time.value = format(item.timestamp, 'p', { locale: zhCN });
+
+      // 安全地处理时间戳
+      const validTimestamp = processTimestamp(item.timestamp);
+      time.value = format(validTimestamp, 'p', { locale: zhCN });
     }
   }
 );
@@ -251,5 +342,47 @@ const emit = defineEmits(['idFromCard']);
 }
 .link:active {
   color: var(--bs-green);
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 767px) {
+  .media {
+    padding: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .media:active {
+    background-color: rgba(33, 170, 147, 0.1);
+  }
+
+  .media .avatar {
+    margin-right: 10px;
+  }
+
+  :deep(.el-avatar) {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .media-body {
+    width: 75%;
+  }
+
+  .info {
+    width: 100%;
+  }
+
+  .text-context {
+    width: 100%;
+  }
+
+  .info h6 {
+    font-size: 15px;
+  }
+
+  .text-context p {
+    font-size: 13px;
+  }
 }
 </style>
